@@ -657,7 +657,7 @@ export class ShopifyAPI {
     const partLength = `products[]=${productsIds[0]}&`.length;
     var partQuery: string[] = [];
     for (const pId of productsIds) {
-      if ((initLength + partLength * partQuery.length) > maxLength) {
+      if ((initLength + partLength * (partQuery.length + 1)) > maxLength) {
         break;
       } else {
         partQuery.push(`products[]=${pId}`);
