@@ -650,12 +650,21 @@ export class ShopifyAPI {
     collectionId: string | number,
     productsIds: (string | number)[],
   ) {
+    const maxLength = 8192;
+    const initLength =
+      `/admin/api/${this.#apiVersion}/smart_collections/${collectionId}/order.json?`
+        .length;
+    const partLength = `products[]=${productsIds[0]}&`.length;
     var partQuery: string[] = [];
     for (const pId of productsIds) {
-      partQuery.push(`products[]=${pId}`);
+      if ((initLength + partLength * partQuery.length) > maxLength) {
+        break;
+      } else {
+        partQuery.push(`products[]=${pId}`);
+      }
     }
     await this.put(
-      `/admin/api/2023-01/smart_collections/${collectionId}/order.json?${
+      `/admin/api/${this.#apiVersion}/smart_collections/${collectionId}/order.json?${
         partQuery.join("&")
       }`,
     );
@@ -710,7 +719,7 @@ export class ShopifyAPI {
       product(id:"${productGid}") {
         id
         variants(first: ${variantQty}${
-      (variantCursor) ? `, after:"${variantCursor}"` : ""
+      variantCursor ? `, after:"${variantCursor}"` : ""
     }){
           pageInfo {
             hasNextPage
