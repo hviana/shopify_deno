@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 /*
 Created by: Henrique Emanoel Viana
 Githu: https://github.com/hviana
@@ -55,7 +56,7 @@ export class ShopifyAPI {
 
   async request(
     endpoint: string,
-    method: string = "GET",
+    method = "GET",
     data: any = {},
   ): Promise<any> {
     const headers = new Headers({
@@ -66,21 +67,23 @@ export class ShopifyAPI {
       headers.append("X-Shopify-Access-Token", this.#token);
     }
     const reqData = JSON.stringify(data);
-    var params: any = {
+    const params: any = {
       method: method,
       headers: headers,
     };
     if (method !== "GET" && method !== "HEAD") {
       params.body = reqData;
     }
-    var request = await fetch(
+    const request = await fetch(
       `https://${this.#shop}/${endpoint}`,
       params,
     );
-    var res: any = {};
+    let res: any = {};
     try {
       res = await request.json();
-    } catch (e) {}
+    } catch (_e) {
+      // some error
+    }
     if (
       request.status === 429 ||
       (res.errors && res.errors[0] && res.errors[0].extensions &&
@@ -94,7 +97,7 @@ export class ShopifyAPI {
 
   async graphQL(
     query: string,
-    endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
+    endpoint = `admin/api/${this.#apiVersion}/graphql.json`,
   ): Promise<any> {
     const headers = new Headers({
       "Content-Type": "application/graphql",
@@ -104,7 +107,7 @@ export class ShopifyAPI {
     if (this.#token) {
       headers.append("X-Shopify-Access-Token", this.#token);
     }
-    var request = await fetch(
+    const request = await fetch(
       `https://${this.#shop}/${endpoint}`,
       {
         method: "POST",
@@ -122,7 +125,7 @@ export class ShopifyAPI {
     }
     return { ...res, ...{ http_status: request.status } };
   }
-  async searchTags(search: string, limit: number = 20): Promise<string[]> {
+  async searchTags(search: string, limit = 20): Promise<string[]> {
     search = this.cleanSearch(search);
     const tags = [];
     const data = await this.graphQL(`
@@ -152,14 +155,14 @@ export class ShopifyAPI {
   }
   async includeScripts(
     appScripts: string[],
-    cache: boolean = false,
-    update: boolean = false,
+    cache = false,
+    update = false,
   ) {
     const storeScripts = await this.get(
       `/admin/api/${this.#apiVersion}/script_tags.json`,
     );
-    var toInstall = [...appScripts];
-    var toUpdateScripts: any[] = [];
+    const toInstall = [...appScripts];
+    const toUpdateScripts: any[] = [];
     for (const appScript of appScripts) {
       for (const storeScript of storeScripts.script_tags) {
         if (storeScript.src.includes(encodeURI(appScript))) {
@@ -204,10 +207,10 @@ export class ShopifyAPI {
   async getOrders(
     created_at_min: string,
     created_at_max: string = (new Date()).toISOString(),
-    limit: number = 50,
-    status: string = "any",
-    financial_status: string = "any",
-    fulfillment_status: string = "any",
+    limit = 50,
+    status = "any",
+    financial_status = "any",
+    fulfillment_status = "any",
     cursor: any = null,
   ) {
     const res = await this.graphQL(`
@@ -289,7 +292,7 @@ export class ShopifyAPI {
                 customerOrderIndex
                 daysToConversion
                 firstVisit {
-                    landingPage 
+                    landingPage
                     landingPageHtml
                     marketingEvent {
                       app {
@@ -305,8 +308,8 @@ export class ShopifyAPI {
                     referralCode
                     referralInfoHtml
                     referrerUrl
-                    source 
-                    sourceDescription 
+                    source
+                    sourceDescription
                     sourceType
                     utmParameters {
                       campaign
@@ -314,10 +317,10 @@ export class ShopifyAPI {
                       medium
                       source
                       term
-                    } 
+                    }
                 }
                 lastVisit {
-                  landingPage 
+                  landingPage
                   landingPageHtml
                   marketingEvent {
                     app {
@@ -333,8 +336,8 @@ export class ShopifyAPI {
                   referralCode
                   referralInfoHtml
                   referrerUrl
-                  source 
-                  sourceDescription 
+                  source
+                  sourceDescription
                   sourceType
                   utmParameters {
                     campaign
@@ -342,10 +345,10 @@ export class ShopifyAPI {
                     medium
                     source
                     term
-                  } 
+                  }
                 }
                 momentsCount
-                ready 
+                ready
             }
           }
         }
@@ -370,7 +373,7 @@ export class ShopifyAPI {
     return allData;
   }
 
-  async searchProductsByTitle(search: string, limit: number = 10) {
+  async searchProductsByTitle(search: string, limit = 10) {
     search = this.cleanSearch(search);
     const resQuery = await this.graphQL(`
     {
@@ -404,7 +407,7 @@ export class ShopifyAPI {
   }
 
   async getAllProductsByIds(ids: string[]): Promise<any[]> {
-    var res: any[] = [];
+    const res: any[] = [];
     for (const id of ids) {
       res.push(
         (await this.get(`/admin/api/${this.#apiVersion}/products/${id}.json`))
@@ -414,7 +417,7 @@ export class ShopifyAPI {
     return res;
   }
   async getAllProductsIdsByTags(tags: string[]) {
-    var res: string[] = [];
+    const res: string[] = [];
     for (const t of tags) {
       res.push(...await this.getAllProductsIdsByTag(t));
     }
@@ -423,7 +426,7 @@ export class ShopifyAPI {
 
   async getAllProductsIdsByTag(
     tag: string,
-    numItems: number = 250,
+    numItems = 250,
     cursor: any = null,
   ): Promise<string[]> { //query:"sku:1*"
     const resQuery = await this.graphQL(`query {
@@ -485,7 +488,7 @@ export class ShopifyAPI {
   async createPlan(
     name: string,
     price: number,
-    trialDays: number = 0,
+    trialDays = 0,
     test: boolean | null = null,
   ) {
     const res = await this.post(
@@ -543,14 +546,14 @@ export class ShopifyAPI {
     query {
        collectionByHandle(handle: "${handle}") {
           id
-       } 
+       }
     }
     `)).data.collectionByHandle.id.split("/").pop();
   }
   async getAllCollectsInCollection(collectionId: string | number) {
-    const max: number = 250;
-    var since: number = 0;
-    var data: any = {};
+    const max = 250;
+    let since = 0;
+    let data: any = {};
     const res: any[] = [];
     while (
       (data = await this.get(
@@ -564,9 +567,9 @@ export class ShopifyAPI {
   }
 
   async getAllProductsInCollection(collectionId: string | number) {
-    const max: number = 250;
-    var since: number = 0;
-    var data: any = {};
+    const max = 250;
+    let since = 0;
+    let data: any = {};
     const res: any[] = [];
     while (
       (data = await this.get(
@@ -582,9 +585,9 @@ export class ShopifyAPI {
   async walkOnProducts(
     func: (product: any) => any | Promise<any>,
   ): Promise<void> {
-    const max: number = 250;
-    var since: number = 0;
-    var data: any = {};
+    const max = 250;
+    let since = 0;
+    let data: any = {};
     while (
       (data = await this.get(
         `/admin/api/${this.#apiVersion}/products.json?limit=${max}&since_id=${since}`,
@@ -599,9 +602,9 @@ export class ShopifyAPI {
   async walkOnDraftOrders(
     func: (product: any) => any | Promise<any>,
   ): Promise<void> {
-    const max: number = 250;
-    var since: number = 0;
-    var data: any = {};
+    const max = 250;
+    let since = 0;
+    let data: any = {};
     while (
       (data = await this.get(
         `/admin/api/${this.#apiVersion}/draft_orders.json?limit=${max}&since_id=${since}`,
@@ -614,7 +617,7 @@ export class ShopifyAPI {
     }
   }
   async addProductTag(id: number, currentTags: string, tags: string[]) {
-    var tagsArr: string[] = currentTags.split(ShopifyAPI.#tagSep);
+    let tagsArr: string[] = currentTags.split(ShopifyAPI.#tagSep);
     tagsArr.push(...tags);
     tagsArr = [...new Set(tagsArr)];
     await this.put(`/admin/api/${this.#apiVersion}/products/${id}.json`, {
@@ -634,7 +637,7 @@ export class ShopifyAPI {
     collectionId: string | number,
     productsIds: (string | number)[],
   ) {
-    for (var i = 1; i < productsIds.length + 1; i++) {
+    for (let i = 1; i < productsIds.length + 1; i++) {
       const productId = productsIds[i - 1];
       await this.post(`/admin/api/${this.#apiVersion}/collects.json`, {
         collect: {
@@ -655,7 +658,7 @@ export class ShopifyAPI {
       `/admin/api/${this.#apiVersion}/smart_collections/${collectionId}/order.json?`
         .length;
     const partLength = `products[]=${productsIds[0]}&`.length;
-    var partQuery: string[] = [];
+    const partQuery: string[] = [];
     for (const pId of productsIds) {
       if ((initLength + partLength * (partQuery.length + 1)) > maxLength) {
         break;
@@ -670,15 +673,16 @@ export class ShopifyAPI {
     );
   }
   async isSmartCollection(collectionId: string | number): Promise<boolean> {
-    var isSmart = false;
+    let isSmart = false;
     try {
-      var collection = (await this.get(
+      const collection = (await this.get(
         `/admin/api/${this.#apiVersion}/smart_collections/${collectionId}.json`,
       )).smart_collection;
       if (collection) {
         isSmart = true;
       }
-    } catch (e) {
+    } catch (_e) {
+      // some error
     }
     return isSmart;
   }
@@ -763,8 +767,8 @@ export class ShopifyAPI {
   async getAllInventoryLevels(
     locationId: string | number,
     productCursor: any = null,
-    published: boolean = true,
-    average: number = -1,
+    published = true,
+    average = -1,
   ): Promise<any> {
     if (average < 0) {
       average = await this.averageVariantsPerProduct(published);
@@ -841,14 +845,14 @@ export class ShopifyAPI {
     return res;
   }
   #average(arr: number[]): number {
-    var sum = 0;
-    for (var number of arr) {
-      sum += number;
+    let sum = 0;
+    for (const n of arr) {
+      sum += n;
     }
     const average = sum / arr.length;
     return average;
   }
-  async averageVariantsPerProduct(published: boolean = true): Promise<number> {
+  async averageVariantsPerProduct(published = true): Promise<number> {
     const products = await this.getAllProducts();
     const values: any[] = [];
     for (const p of products) {
@@ -863,7 +867,7 @@ export class ShopifyAPI {
   async removeProductTag(id: number, currentTags: string, tags: string[]) {
     const tagsArr: string[] = currentTags.split(ShopifyAPI.#tagSep);
     for (const t of tags) {
-      var i = tagsArr.length;
+      let i = tagsArr.length;
       while (i--) {
         if (tagsArr[i] === t) {
           tagsArr.splice(i, 1);

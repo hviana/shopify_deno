@@ -42,10 +42,13 @@ const shopifyApp1 = new ShopifyApp(
       //need to return url parameters, default is (if userTokenFunc not defined):
       return `${access_token}&shop=${shop}`;
     },
+    clientDataFunc: async (ctx: Context, data: WebHookCall) => {
+      // process client data
+    },
     webhooks: [ //OPTIONAL
       {
         topic: "orders/create",
-        func: (data: WebHookCall) => {
+        func: (ctx:Context,data: WebHookCall) => {
           //avoid using await here, prevent shopify webhook timeout is important
           console.log(data.data);
           console.log(data.shop);
@@ -80,7 +83,7 @@ In Shopify Configs, configure:
 3. Privacy policy:
 
 ```
-"host"/"namespace"/privacy_policy
+"privacy_route"
 ```
 
 4. Customer data request endpoint:

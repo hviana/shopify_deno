@@ -14,12 +14,14 @@ export type WebHookCall = {
   apiVersion: string;
   topic: string;
   shop: string;
+  // deno-lint-ignore no-explicit-any
   data: any;
 };
 
-export type WebHookFunc = (data: WebHookCall) => Promise<void> | void;
+export type WebHookFunc = (ctx:Context, data: WebHookCall) => Promise<void> | void;
 
 export type UserTokenFunc = (
+  ctx: Context,
   shop: string,
   access_token: string,
 ) => Promise<string> | string;
@@ -39,8 +41,9 @@ export type ShopifyAppOptions = {
   namespace: string;
   host: string;
   home_route: string;
-  privacy_policy?: string;
+  policy_route: string;
   webhooks?: WebHook[];
+  embedded?: boolean;
   userTokenFunc?: UserTokenFunc;
   clientDataFunc?: WebHookFunc;
   deleteClientDataFunc?: WebHookFunc;
@@ -53,24 +56,25 @@ const ShopifyAppOptionsDefault = {
   scopes: "",
   namespace: "",
   host: "",
-  home_route: "",
-  privacy_policy: "",
+  home_route: "/",
+  policy_route: "/privacy_policy",
+  embedded: true,
   webhooks: [],
-  userTokenFunc: async (shop: string, access_token: string) => {
+  userTokenFunc: (_ctx: Context, shop: string, access_token: string) => {
     return `${access_token}&shop=${shop}`;
   },
-  clientDataFunc: async (data: WebHookCall) => {
+  clientDataFunc: async (_ctx:Context, _data: WebHookCall) => {
   },
-  deleteClientDataFunc: async (data: WebHookCall) => {
+  deleteClientDataFunc: async (_ctx:Context, _data: WebHookCall) => {
   },
-  deleteShopDataFunc: async (data: WebHookCall) => {
+  deleteShopDataFunc: async (_ctx:Context, _data: WebHookCall) => {
   },
 };
 
 export class ShopifyApp {
   static #dec = new TextDecoder("utf-8");
   static #enc = new TextEncoder();
-  static #webhookApiVersion = "2022-10";
+  static #webhookApiVersion = "2023-10";
   #server: Server;
   #registered_webhooks: { [key: string]: WebHookFunc } = {};
   #options: ShopifyAppOptions;
@@ -85,8 +89,7 @@ export class ShopifyApp {
     this.#options = { ...ShopifyAppOptionsDefault, ...options };
     this.#mountRoutes();
   }
-  async #mountRoutes() {
-    var self = this;
+  #mountRoutes() {
     this.#registered_webhooks["client_data"] = this.options.clientDataFunc!;
     this.#registered_webhooks["delete_client"] = this.options
       .deleteClientDataFunc!;
@@ -99,7 +102,7 @@ export class ShopifyApp {
       this.#verifyHMAC(),
       async (ctx: Context, next: NextFunc) => {
         try {
-          await self.#registered_webhooks[ctx.params.wild](ctx.extra.webhook);
+          await this.#registered_webhooks[ctx.params.wild](ctx, ctx.extra.webhook);
         } catch (e) {
           console.log(
             `Webhook error: ${e}, data: ${JSON.stringify(ctx.extra.webhook)}`,
@@ -111,26 +114,31 @@ export class ShopifyApp {
     this.#server.get(
       this.appPath + "/install",
       async (ctx: Context, next) => {
-        var redirect_url = encodeURI(
+        const redirect_url = encodeURI(
           `https://${
             ctx.url.searchParams.get("shop")
-          }/admin/oauth/authorize?client_id=${self.options["api_key"]}&scope=${
-            self.options["scopes"]
+          }/admin/oauth/authorize?client_id=${this.options["api_key"]}&scope=${
+            this.options["scopes"]
           }&redirect_uri=${
-            self.options.host! +
+            this.options.host! +
             this.appPath + "/auth"
           }`,
         );
         ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
-        ctx.res.body = `<!DOCTYPE html><html><head></head><body>
-		  <strong style="font-size:20pt;">REDIRECTING ...</strong>
-		  <script type='text/javascript'>
-            if(window !== window.top){
-              window.top.location.href = '${redirect_url}';
-            }else{
-              window.location.href = '${redirect_url}';
-            }
-          </script></body></html>`;
+        ctx.res.body = `<!DOCTYPE html>
+        <html>
+          <head></head>
+          <body>
+            <strong style="font-size:14px;">redirecting to shopify...</strong>
+            <script type='text/javascript'>
+              if(window !== window.top){
+                window.top.location.href = '${redirect_url}';
+              }else{
+                window.location.href = '${redirect_url}';
+              }
+            </script>
+          </body>
+        </html>`;
         await next();
       },
     );
@@ -139,58 +147,48 @@ export class ShopifyApp {
       this.#verifyHMAC(),
       async (ctx: Context, next: NextFunc) => {
         const shopifyAPI = new ShopifyAPI(ctx.url.searchParams.get("shop")!);
-        var res = await shopifyAPI.post("/admin/oauth/access_token", {
-          client_id: self.options.api_key!,
-          client_secret: self.options.api_secret!,
+        const res = await shopifyAPI.post("/admin/oauth/access_token", {
+          client_id: this.options.api_key!,
+          client_secret: this.options.api_secret!,
           code: ctx.url.searchParams.get("code"),
         });
         if (res.http_status === 200) {
-          for (var i = 0; i < self.options.webhooks!.length; i++) {
-            await self.registerWebhooks(
+          for (let i = 0; i < this.options.webhooks!.length; i++) {
+            await this.registerWebhooks(
               ctx.url.searchParams.get("shop")!,
               res.access_token,
-              self.options.webhooks![i],
+              this.options.webhooks![i],
             );
           }
-          const token = await self.options.userTokenFunc!(
+          const token = await this.options.userTokenFunc!(
+            ctx,
             ctx.url.searchParams.get("shop")!,
             res.access_token,
           );
           const home_route_abs = encodeURI(
-            `${self.options.host!}${self.options.home_route!}?token=${token}`,
+            `${this.options.host!}${this.options.home_route!}?token=${token}`,
           );
           const home_route_embedded = encodeURI(
-            `https://${ctx.url.searchParams.get("shop")}/admin/apps/${this
-              .options.api_key!}${self
-              .options.home_route!}?token=${token}`,
+            `https://${ctx.url.searchParams.get("shop")}/admin/apps/${this.options.api_key!}${this.options.home_route!}?token=${token}`,
           );
-          ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
-          ctx.res.body = `<!DOCTYPE html><html><head></head><body>
-			<strong style="font-size:20pt;">REDIRECTING ...</strong>
-			<script type='text/javascript'>
-              window.location.href = (window !== window.top) ? '${home_route_abs}' : '${home_route_embedded}';
-            </script></body></html>`;
+          // redirect to home page
+          if(!this.options.embedded) ctx.redirect(home_route_abs)
+          else {
+            ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
+            ctx.res.body = `<!DOCTYPE html>
+              <html>
+                <head></head>
+                <body>
+                  <strong style="font-size:14px;">redirecting ...</strong>
+                  <script type='text/javascript'>
+                    window.location.href = (window !== window.top) ? '${home_route_abs}' : '${home_route_embedded}';
+                  </script>
+                </body>
+              </html>`;
+          }
         } else {
           ctx.res.status = 403;
         }
-        await next();
-      },
-    );
-    this.#server.get(
-      this.appPath + "/privacy_policy",
-      async (ctx: Context, next: NextFunc) => {
-        ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
-        ctx.res.body = `<!DOCTYPE html>
-          <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Privacy and Terms</title>
-            </head>
-            <body>
-              <pre>${this.options.privacy_policy}</pre>
-            </body>
-          </html>`;
         await next();
       },
     );
@@ -208,6 +206,7 @@ export class ShopifyApp {
     if (exists.webhooks.length > 0) {
       return;
     }
+    // deno-lint-ignore no-explicit-any
     const data: any = {
       "webhook": {
         "topic": webHook.topic,
@@ -225,19 +224,18 @@ export class ShopifyApp {
     if (webHook.fields) {
       data.webhook.fields = webHook.fields!;
     }
-    const res = await shopifyAPI.post(
+    const _res = await shopifyAPI.post(
       `/admin/api/${ShopifyApp.#webhookApiVersion}/webhooks.json`,
       data,
     );
   }
   #verifyHMAC() {
-    var self = this;
-    return async function verifyHMAC(ctx: Context, next: NextFunc) {
+    return async (ctx: Context, next: NextFunc) => {
       if (ctx.url.searchParams.get("hmac")) {
-        return await self.#verifyAdminHMAC(ctx, next);
+        return await this.#verifyAdminHMAC(ctx, next);
       }
       if (ctx.req.headers.get("X-Shopify-Hmac-Sha256")) {
-        return await self.#verifyWebhookHMAC(ctx, next);
+        return await this.#verifyWebhookHMAC(ctx, next);
       }
     };
   }
@@ -289,7 +287,7 @@ export class ShopifyApp {
 
   async #verifyAdminHMAC(ctx: Context, next: NextFunc) {
     const hmac = ctx.url.searchParams.get("hmac");
-    var kvpairs: string[] = [];
+    const kvpairs: string[] = [];
     ctx.url.searchParams.forEach(function (value: string, key: string) {
       if (key != "hmac" && key != "signature") {
         kvpairs.push(
