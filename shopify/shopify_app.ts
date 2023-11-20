@@ -18,9 +18,10 @@ export type WebHookCall = {
   data: any;
 };
 
-export type WebHookFunc = (data: WebHookCall) => Promise<void> | void;
+export type WebHookFunc = (ctx:Context, data: WebHookCall) => Promise<void> | void;
 
 export type UserTokenFunc = (
+  ctx: Context,
   shop: string,
   access_token: string,
 ) => Promise<string> | string;
@@ -40,7 +41,7 @@ export type ShopifyAppOptions = {
   namespace: string;
   host: string;
   home_route: string;
-  privacy_policy?: string;
+  policy_route: string;
   webhooks?: WebHook[];
   embeded?: boolean;
   userTokenFunc?: UserTokenFunc;
@@ -55,25 +56,25 @@ const ShopifyAppOptionsDefault = {
   scopes: "",
   namespace: "",
   host: "",
-  home_route: "",
-  privacy_policy: "",
+  home_route: "/",
+  policy_route: "/privacy_policy",
   embeded: true,
   webhooks: [],
-  userTokenFunc: (shop: string, access_token: string) => {
+  userTokenFunc: (_ctx: Context, shop: string, access_token: string) => {
     return `${access_token}&shop=${shop}`;
   },
-  clientDataFunc: async (_data: WebHookCall) => {
+  clientDataFunc: async (_ctx:Context, _data: WebHookCall) => {
   },
-  deleteClientDataFunc: async (_data: WebHookCall) => {
+  deleteClientDataFunc: async (_ctx:Context, _data: WebHookCall) => {
   },
-  deleteShopDataFunc: async (_data: WebHookCall) => {
+  deleteShopDataFunc: async (_ctx:Context, _data: WebHookCall) => {
   },
 };
 
 export class ShopifyApp {
   static #dec = new TextDecoder("utf-8");
   static #enc = new TextEncoder();
-  static #webhookApiVersion = "2022-10";
+  static #webhookApiVersion = "2023-10";
   #server: Server;
   #registered_webhooks: { [key: string]: WebHookFunc } = {};
   #options: ShopifyAppOptions;
@@ -101,7 +102,7 @@ export class ShopifyApp {
       this.#verifyHMAC(),
       async (ctx: Context, next: NextFunc) => {
         try {
-          await this.#registered_webhooks[ctx.params.wild](ctx.extra.webhook);
+          await this.#registered_webhooks[ctx.params.wild](ctx, ctx.extra.webhook);
         } catch (e) {
           console.log(
             `Webhook error: ${e}, data: ${JSON.stringify(ctx.extra.webhook)}`,
@@ -160,6 +161,7 @@ export class ShopifyApp {
             );
           }
           const token = await this.options.userTokenFunc!(
+            ctx,
             ctx.url.searchParams.get("shop")!,
             res.access_token,
           );
@@ -187,24 +189,6 @@ export class ShopifyApp {
         } else {
           ctx.res.status = 403;
         }
-        await next();
-      },
-    );
-    this.#server.get(
-      this.appPath + "/privacy_policy",
-      async (ctx: Context, next: NextFunc) => {
-        ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
-        ctx.res.body = `<!DOCTYPE html>
-          <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Privacy and Terms</title>
-            </head>
-            <body>
-              <pre>${this.options.privacy_policy}</pre>
-            </body>
-          </html>`;
         await next();
       },
     );
