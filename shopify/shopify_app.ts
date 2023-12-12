@@ -123,7 +123,7 @@ export class ShopifyApp {
         );
         ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
         ctx.res.body = `<!DOCTYPE html><html><head></head><body>
-		  <strong style="font-size:20pt;">REDIRECTING ...</strong>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" style="width: 100px; position: fixed; top: 50%; left: 50%;"><radialGradient id="a12" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="#0044FF"></stop><stop offset=".3" stop-color="#0044FF" stop-opacity=".9"></stop><stop offset=".6" stop-color="#0044FF" stop-opacity=".6"></stop><stop offset=".8" stop-color="#0044FF" stop-opacity=".3"></stop><stop offset="1" stop-color="#0044FF" stop-opacity="0"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a12)" stroke-width="15" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="2" values="360;0" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="#0044FF" stroke-width="15" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
 		  <script type='text/javascript'>
             if(window !== window.top){
               window.top.location.href = '${redirect_url}';
@@ -156,20 +156,12 @@ export class ShopifyApp {
             ctx.url.searchParams.get("shop")!,
             res.access_token,
           );
-          const home_route_abs = encodeURI(
-            `${self.options.host!}${self.options.home_route!}?token=${token}`,
-          );
           const home_route_embedded = encodeURI(
             `https://${ctx.url.searchParams.get("shop")}/admin/apps/${this
               .options.api_key!}${self
               .options.home_route!}?token=${token}`,
           );
-          ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
-          ctx.res.body = `<!DOCTYPE html><html><head></head><body>
-			<strong style="font-size:20pt;">REDIRECTING ...</strong>
-			<script type='text/javascript'>
-              window.location.href = (window !== window.top) ? '${home_route_abs}' : '${home_route_embedded}';
-            </script></body></html>`;
+          ctx.redirect(home_route_embedded);
         } else {
           ctx.res.status = 403;
         }

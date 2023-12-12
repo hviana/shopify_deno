@@ -21,7 +21,7 @@ export class ShopifyAPI {
     shop: string,
     token: string = "",
     apiKey: string = "",
-    apiVersion: string = "2023-01",
+    apiVersion: string = "2023-10",
   ) {
     this.#shop = shop;
     this.#token = token;

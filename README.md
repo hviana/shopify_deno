@@ -34,11 +34,11 @@ const shopifyApp1 = new ShopifyApp(
     api_key: "79e4871756c98ccf48ac647c724022e1",
     api_secret: "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",
     scopes: "read_products,read_orders",
-    host: "https://xxx.ngrok.io",
+    host: "https://xxx.ngrok.io", //Without ending with "/"
     namespace: "my_app_1_ns", //you can instantiate different apps on the same server with different namespaces
     home_route: "/my_app_1_index",
     userTokenFunc: async (shop: string, access_token: string) => { //OPTIONAL
-      //SAVE shop access_token HERE, for later use.
+      //SAVE shop => access_token HERE, for later use.
       //need to return url parameters, default is (if userTokenFunc not defined):
       return `${access_token}&shop=${shop}`;
     },
