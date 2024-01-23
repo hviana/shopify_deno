@@ -262,7 +262,7 @@ export class ShopifyApp {
     const shop = ctx.req.headers.get("X-Shopify-Shop-Domain");
     const message = await ctx.req.text();
     const digest = b64.encodeBase64(
-      await this.#hmacSha256(this.options.api_secret!, message),
+      (await this.#hmacSha256(this.options.api_secret!, message)).buffer,
     );
     if (digest === hmac) {
       ctx.extra.shopify_hmac_verified = true;
@@ -293,7 +293,9 @@ export class ShopifyApp {
     });
     const message = kvpairs.sort().join("&");
     const digest = ShopifyApp.#dec.decode(
-      hex.encodeHex(await this.#hmacSha256(this.options.api_secret!, message)),
+      hex.encodeHex(
+        (await this.#hmacSha256(this.options.api_secret!, message)).buffer,
+      ),
     );
     if (digest === hmac) {
       ctx.extra.shopify_hmac_verified = true;
