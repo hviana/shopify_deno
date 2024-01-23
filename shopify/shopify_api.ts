@@ -201,6 +201,60 @@ export class ShopifyAPI {
     }
   }
 
+  async productCreateMedia(
+    imageSourceUrls: string[],
+    productId: string,
+    mediaContentType: string = "IMAGE",
+  ): Promise<string[]> {
+    const ids: string[] = [];
+    for (const url of imageSourceUrls) {
+      const resMedia = await this.graphQL(`
+      mutation {
+        productCreateMedia(media: {
+          mediaContentType: ${mediaContentType},
+          originalSource: "${url}"
+        },
+        productId: "gid://shopify/Product/${productId}"
+        ) {
+          media {
+            id
+          }
+        }
+      }
+      `);
+      var idParts = resMedia.data.productCreateMedia.media[0].id.split("/");
+      ids.push(idParts[idParts.length - 1]);
+    }
+    return ids;
+  }
+  async productVariantAppendMedia(
+    mediaIds: string[],
+    productId: string,
+    variantId: string,
+  ) {
+    var res: any[] = [];
+    const mediaIdsUrls = mediaIds.map((id) => `gid://shopify/MediaImage/${id}`);
+    res.push(
+      await this.graphQL(`
+      mutation {
+        productVariantAppendMedia(productId: "gid://shopify/Product/${productId}", 
+          variantMedia: [{
+            mediaIds: ${JSON.stringify(mediaIdsUrls)},
+            variantId: "gid://shopify/ProductVariant/${variantId}"
+          }]
+        ){
+            userErrors {
+              code
+              field
+              message
+            }
+          }
+      }
+      `),
+    );
+    return res;
+  }
+
   async getOrders(
     created_at_min: string,
     created_at_max: string = (new Date()).toISOString(),
