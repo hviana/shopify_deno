@@ -604,6 +604,11 @@ export class ShopifyAPI {
     await this.walkOnProducts((p: any) => products.push(p));
     return products;
   }
+  async getAllInventories(locationId: string): Promise<any[]> {
+    const inventories: any[] = [];
+    await this.walkOnInventories(locationId, (i: any) => inventories.push(i));
+    return inventories;
+  }
   async getProduct(id: string | number) {
     return (await this.get(`admin/api/${this.#apiVersion}/products/${id}.json`))
       .product;
@@ -655,7 +660,23 @@ export class ShopifyAPI {
     }
     return res;
   }
-
+  async walkOnInventories(
+    locationId: string,
+    func: (inventory: any) => any | Promise<any>,
+  ): Promise<void> {
+    const max: number = 250;
+    var link =
+      `/admin/api/${this.#apiVersion}/locations/${locationId}/inventory_levels.json?limit=${max}`;
+    while (
+      link
+    ) {
+      const data = await this.get(link);
+      for (const inventory of data.inventory_levels) {
+        await func(inventory);
+      }
+      link = data.next_page;
+    }
+  }
   async walkOnProducts(
     func: (product: any) => any | Promise<any>,
   ): Promise<void> {
