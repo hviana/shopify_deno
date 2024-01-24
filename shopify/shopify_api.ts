@@ -73,8 +73,11 @@ export class ShopifyAPI {
     if (method !== "GET" && method !== "HEAD") {
       params.body = reqData;
     }
+    if (!endpoint.startsWith("http")) {
+      endpoint = `https://${this.#shop}/${endpoint}`;
+    }
     var request = await fetch(
-      `https://${this.#shop}/${endpoint}`,
+      endpoint,
       params,
     );
     var res: any = {};
