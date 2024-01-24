@@ -92,13 +92,31 @@ export class ShopifyAPI {
       await this.delay(1000);
       return await this.request(endpoint, method, data);
     }
-    return {
+    const retData = {
       ...res,
       ...{
         http_status: request.status,
         headers: Object.fromEntries(request.headers),
       },
     };
+    if (retData.headers.link) {
+      const links: string[] = [];
+      const index = retData.headers.link.indexOf(", <https");
+      if (index > 0) {
+        links.push(retData.headers.link.substring(0, index));
+        links.push(retData.headers.link.substring(index + 2));
+      } else {
+        links.push(retData.headers.link);
+      }
+      for (const l of links) {
+        if (l.includes('rel="next"')) {
+          retData.next_page = l.match(/<(.*)>; rel="next"/)![1];
+        } else if (l.includes('rel="previous"')) {
+          retData.previous_page = l.match(/<(.*)>; rel="previous"/)![1];
+        }
+      }
+    }
+    return retData;
   }
 
   async graphQL(
