@@ -70,7 +70,7 @@ const ShopifyAppOptionsDefault = {
 export class ShopifyApp {
   static #dec = new TextDecoder("utf-8");
   static #enc = new TextEncoder();
-  static #webhookApiVersion = "2022-10";
+  static #webhookApiVersion = "2024-01";
   #server: Server;
   #registered_webhooks: { [key: string]: WebHookFunc } = {};
   #options: ShopifyAppOptions;

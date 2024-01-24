@@ -21,7 +21,7 @@ export class ShopifyAPI {
     shop: string,
     token: string = "",
     apiKey: string = "",
-    apiVersion: string = "2023-10",
+    apiVersion: string = "2024-01",
   ) {
     this.#shop = shop;
     this.#token = token;
@@ -89,7 +89,13 @@ export class ShopifyAPI {
       await this.delay(1000);
       return await this.request(endpoint, method, data);
     }
-    return { ...res, ...{ http_status: request.status } };
+    return {
+      ...res,
+      ...{
+        http_status: request.status,
+        headers: Object.fromEntries(request.headers),
+      },
+    };
   }
 
   async graphQL(
