@@ -260,11 +260,14 @@ export class ShopifyAPI {
     variantId: string,
   ) {
     const mediaIdsUrls = mediaIds.map((id) => `gid://shopify/MediaImage/${id}`);
-    return await this.graphQL(`
+    var res: any[] = [];
+    for (const mediaIdsUrl of mediaIdsUrls) {
+      res.push(
+        await this.graphQL(`
       mutation {
         productVariantAppendMedia(productId: "gid://shopify/Product/${productId}", 
           variantMedia: [{
-            mediaIds: ${JSON.stringify(mediaIdsUrls)},
+            mediaIds: ["${mediaIdsUrl}"],
             variantId: "gid://shopify/ProductVariant/${variantId}"
           }]
         ){
@@ -275,7 +278,10 @@ export class ShopifyAPI {
             }
           }
       }
-      `);
+      `),
+      );
+    }
+    return res;
   }
 
   async getOrders(
