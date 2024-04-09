@@ -142,7 +142,8 @@ export class ShopifyAPI {
     const res: any = await request.json();
     if (
       request.status === 429 ||
-      (res.errors && res.errors[0].extensions.code === "THROTTLED")
+      (res.errors && res.errors[0] && res.errors[0].extensions &&
+        res.errors[0].extensions.code === "THROTTLED")
     ) {
       await this.delay(1000);
       return await this.graphQL(query, endpoint);
