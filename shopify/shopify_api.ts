@@ -454,6 +454,41 @@ export class ShopifyAPI {
     return allData;
   }
 
+  async tagsAdd(objectName: string, id: string, tags: string[]): Promise<any> {
+    return await this.graphQL(`
+      mutation {
+        tagsAdd (
+          id: "gid://shopify/${objectName}/${id}",
+          tags: ${JSON.stringify(tags)}
+          ) {
+            userErrors {
+              field
+              message
+            }
+          }
+      }
+  `);
+  }
+  async tagsRemove(
+    objectName: string,
+    id: string,
+    tags: string[],
+  ): Promise<any> {
+    return await this.graphQL(`
+      mutation {
+        tagsRemove (
+          id: "gid://shopify/${objectName}/${id}",
+          tags: ${JSON.stringify(tags)}
+          ) {
+            userErrors {
+              field
+              message
+            }
+          }
+      }
+  `);
+  }
+
   async searchProductsByTitle(search: string, limit: number = 10) {
     search = this.cleanSearch(search);
     const resQuery = await this.graphQL(`
