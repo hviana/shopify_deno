@@ -21,7 +21,7 @@ export class ShopifyAPI {
     shop: string,
     token: string = "",
     apiKey: string = "",
-    apiVersion: string = "2024-01",
+    apiVersion: string = "2024-04",
   ) {
     this.#shop = shop;
     this.#token = token;
@@ -227,6 +227,53 @@ export class ShopifyAPI {
         );
       }
     }
+  }
+
+  async listChannels(): Promise<any> {
+    return (await this.graphQL(`
+    {
+      publications(first:250){
+        edges{
+          node{
+            id
+            name
+          }
+        }
+      }
+    }
+  `)).data.publications.edges.map((n) => n.node);
+  }
+
+  async publish(objGid: string, publicationGid: string): Promise<any> {
+    return await this.graphQL(`
+    mutation {
+      publishablePublish(id: "${objGid}", input:{
+        publicationId: "${publicationGid}",
+        publishDate: "${(new Date()).toISOString()}"
+      }){
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `);
+  }
+
+  async unPublish(objGid: string, publicationGid: string): Promise<any> {
+    return await this.graphQL(`
+    mutation {
+      publishableUnpublish(id: "${objGid}", input:{
+        publicationId: "${publicationGid}",
+        publishDate: "${(new Date()).toISOString()}"
+      }){
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `);
   }
 
   async productCreateMedia(
