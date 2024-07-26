@@ -21,7 +21,7 @@ export class ShopifyAPI {
     shop: string,
     token: string = "",
     apiKey: string = "",
-    apiVersion: string = "2024-04",
+    apiVersion: string = "2024-07",
   ) {
     this.#shop = shop;
     this.#token = token;
@@ -868,6 +868,38 @@ export class ShopifyAPI {
     } catch (e) {
     }
     return isSmart;
+  }
+  async getInventoryLevelsBySKU(
+    sku: string | number,
+  ) {
+    const res = await this.graphQL(`
+  query {
+    productVariants(first: 1, query: "sku:${sku}") {
+      edges{
+        node {
+          inventoryItem {
+            inventoryLevels(first:249) {
+               edges {
+                  node {
+                    location {
+                        id
+                    },
+                  quantities(names: ${
+      JSON.stringify(ShopifyAPI.#quantityNames)
+    })        {
+                              name
+                              quantity
+                            }
+                  }
+                }
+            }
+          }
+        }
+      }
+    }
+  }`);
+    return res.data.productVariants.edges[0].node.inventoryItem.inventoryLevels
+      .edges;
   }
   async getInventoryLevelBySKU(
     sku: string | number,
