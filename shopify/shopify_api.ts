@@ -153,9 +153,6 @@ export class ShopifyAPI {
     ) {
       const retryHeader = request.headers.get("Retry-After")!;
       if (retryHeader) {
-        const retryInSeconds = Math.ceil(
-          parseFloat(retryHeader),
-        );
         await this.delay(Math.ceil(parseFloat(retryHeader) * 1000));
         return await this.graphQL(query, endpoint);
       } else {
