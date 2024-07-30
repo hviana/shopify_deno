@@ -93,6 +93,9 @@ export class ShopifyAPI {
       if (retryHeader) {
         await this.delay(Math.ceil(parseFloat(retryHeader) * 1000));
         return await this.request(endpoint, method, data);
+      } else {
+        await this.delay(1000);
+        return await this.request(endpoint, method, data);
       }
     }
     const retData = {
@@ -154,6 +157,9 @@ export class ShopifyAPI {
           parseFloat(retryHeader),
         );
         await this.delay(Math.ceil(parseFloat(retryHeader) * 1000));
+        return await this.graphQL(query, endpoint);
+      } else {
+        await this.delay(1000);
         return await this.graphQL(query, endpoint);
       }
     }
