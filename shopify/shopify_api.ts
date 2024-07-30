@@ -89,7 +89,10 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      await this.delay(1000);
+      const retryInSeconds = Math.ceil(
+        parseFloat(request.headers.get("Retry-After")!),
+      );
+      await this.delay(retryInSeconds * 1000);
       return await this.request(endpoint, method, data);
     }
     const retData = {
@@ -145,7 +148,10 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      await this.delay(1000);
+      const retryInSeconds = Math.ceil(
+        parseFloat(request.headers.get("Retry-After")!),
+      );
+      await this.delay(retryInSeconds * 1000);
       return await this.graphQL(query, endpoint);
     }
     return { ...res, ...{ http_status: request.status } };
