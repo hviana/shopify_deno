@@ -89,9 +89,9 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      const retryHeader = request.headers.get("Retry-After")!;
-      if (retryHeader) {
-        await this.delay(Math.ceil(parseFloat(retryHeader) * 1000));
+      const retryHeader = parseFloat(request.headers.get("Retry-After")!) || 0;
+      if (retryHeader < 60) {
+        await this.delay(Math.ceil(retryHeader * 1000));
         return await this.request(endpoint, method, data);
       } else {
         await this.delay(1000);
@@ -151,9 +151,9 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      const retryHeader = request.headers.get("Retry-After")!;
-      if (retryHeader) {
-        await this.delay(Math.ceil(parseFloat(retryHeader) * 1000));
+      const retryHeader = parseFloat(request.headers.get("Retry-After")!) || 0;
+      if (retryHeader < 60) {
+        await this.delay(Math.ceil(retryHeader * 1000));
         return await this.graphQL(query, endpoint);
       } else {
         await this.delay(1000);
