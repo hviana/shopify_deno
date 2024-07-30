@@ -11,6 +11,7 @@ export class ShopifyAPI {
   #apiVersion: string;
   #apiKey: string;
   static #tagSep = ", ";
+  static retry: number = 0;
   static #quantityNames = [
     "reserved",
     "committed",
@@ -57,7 +58,6 @@ export class ShopifyAPI {
     endpoint: string,
     method: string = "GET",
     data: any = {},
-    retry: number = 0,
   ): Promise<any> {
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -90,12 +90,14 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      retry++;
-      if (retry > 20) { //10 seconds
-        retry = 1;
+      ShopifyAPI.retry++;
+      if (ShopifyAPI.retry > 20) { //10 seconds
+        ShopifyAPI.retry = 1;
       }
-      await this.delay(retry * 0.5 * 1000);
-      return await this.request(endpoint, method, data, retry);
+      await this.delay(ShopifyAPI.retry * 0.5 * 1000);
+      return await this.request(endpoint, method, data);
+    } else {
+      ShopifyAPI.retry = 0;
     }
     const retData = {
       ...res,
@@ -127,7 +129,6 @@ export class ShopifyAPI {
   async graphQL(
     query: string,
     endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
-    retry: number = 0,
   ): Promise<any> {
     const headers = new Headers({
       "Content-Type": "application/graphql",
@@ -151,12 +152,14 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      retry++;
-      if (retry > 20) { //10 seconds
-        retry = 1;
+      ShopifyAPI.retry++;
+      if (ShopifyAPI.retry > 20) { //10 seconds
+        ShopifyAPI.retry = 1;
       }
-      await this.delay(retry * 0.5 * 1000);
-      return await this.graphQL(query, endpoint, retry);
+      await this.delay(ShopifyAPI.retry * 0.5 * 1000);
+      return await this.graphQL(query, endpoint);
+    } else {
+      ShopifyAPI.retry = 0;
     }
     return { ...res, ...{ http_status: request.status } };
   }
