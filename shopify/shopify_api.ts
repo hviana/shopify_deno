@@ -57,6 +57,7 @@ export class ShopifyAPI {
     endpoint: string,
     method: string = "GET",
     data: any = {},
+    retry: number = 0,
   ): Promise<any> {
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -89,14 +90,12 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      const retryHeader = parseFloat(request.headers.get("Retry-After")!) || 1;
-      if (retryHeader < 60) {
-        await this.delay(Math.ceil(retryHeader * 1000));
-        return await this.request(endpoint, method, data);
-      } else {
-        await this.delay(1000);
-        return await this.request(endpoint, method, data);
+      retry++;
+      if (retry > 20) { //10 seconds
+        retry = 1;
       }
+      await this.delay(retry * 0.5 * 1000);
+      return await this.request(endpoint, method, data, retry);
     }
     const retData = {
       ...res,
@@ -128,6 +127,7 @@ export class ShopifyAPI {
   async graphQL(
     query: string,
     endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
+    retry: number = 0,
   ): Promise<any> {
     const headers = new Headers({
       "Content-Type": "application/graphql",
@@ -151,14 +151,12 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      const retryHeader = parseFloat(request.headers.get("Retry-After")!) || 1;
-      if (retryHeader < 60) {
-        await this.delay(Math.ceil(retryHeader * 1000));
-        return await this.graphQL(query, endpoint);
-      } else {
-        await this.delay(1000);
-        return await this.graphQL(query, endpoint);
+      retry++;
+      if (retry > 20) { //10 seconds
+        retry = 1;
       }
+      await this.delay(retry * 0.5 * 1000);
+      return await this.graphQL(query, endpoint, retry);
     }
     return { ...res, ...{ http_status: request.status } };
   }
@@ -179,11 +177,12 @@ export class ShopifyAPI {
     for (const i in data.data.products.edges) {
       for (const j in data.data.products.edges[i].node.tags) {
         if (
+          //@ts-ignore
           tags.indexOf(data.data.products.edges[i].node.tags[j]) === -1 &&
           data.data.products.edges[i].node.tags[j].toLowerCase().includes(
             search.toLowerCase(),
           )
-        ) {
+        ) { //@ts-ignore
           tags.push(data.data.products.edges[i].node.tags[j]);
         }
       }
