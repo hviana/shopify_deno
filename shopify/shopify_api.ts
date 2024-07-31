@@ -76,10 +76,6 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    const cleaned = await this.delayQueue();
-    if (cleaned) {
-      return await this.request(endpoint, method, data);
-    }
     const headers = new Headers({
       "Content-Type": "application/json",
       "Accept": "application/json",
@@ -104,19 +100,20 @@ export class ShopifyAPI {
     );
     var res: any = {};
     try {
+      while (await this.delayQueue()) {
+        continue;
+      }
       ShopifyAPI.#reqsPerSecond[this.#shop]++;
       ShopifyAPI.#lastReq[this.#shop] = Date.now();
       res = await request.json();
     } catch (e) {}
-    if (request.status === 200) {
-      console.log([request.status, res, ShopifyAPI.#reqsPerSecond[this.#shop]]);
-    }
     if (
       request.status === 429 ||
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
       await this.delay(1000);
+      return await this.request(endpoint, method, data);
     }
     const retData = {
       ...res,
