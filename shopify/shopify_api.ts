@@ -12,9 +12,10 @@ export class ShopifyAPI {
   #apiKey: string;
   #maxReqsPerSecond: number;
   static #cleaningReqs: { [key: string]: boolean } = {};
+  static #cleaningGraphQL: { [key: string]: boolean } = {};
   static #lastReq: { [key: string]: number } = {};
   static #tagSep = ", ";
-  static #retry: { [key: string]: number } = {};
+  static #graphQlThrottleStatus: { [key: string]: any } = {};
   static #reqsPerSecond: { [key: string]: number } = {};
   static #quantityNames = [
     "reserved",
@@ -30,10 +31,11 @@ export class ShopifyAPI {
     maxReqsPerSecond: number = 2,
   ) {
     this.#shop = shop;
-    ShopifyAPI.#retry[this.#shop] = 0;
+    ShopifyAPI.#graphQlThrottleStatus[this.#shop] = {};
     ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
     ShopifyAPI.#lastReq[this.#shop] = Date.now();
     ShopifyAPI.#cleaningReqs[this.#shop] = false;
+    ShopifyAPI.#cleaningGraphQL[this.#shop] = false;
     this.#token = token;
     this.#apiKey = apiKey;
     this.#apiVersion = apiVersion;
@@ -63,7 +65,31 @@ export class ShopifyAPI {
   cleanSearch(search: string): string {
     return search.normalize("NFD").replace(/\p{Diacritic}/gu, "");
   }
+  async delayQueueGraphQl() {
+    while (ShopifyAPI.#cleaningGraphQL[this.#shop]) {
+      await this.delay(100);
+    }
+    var cleaned = false;
+    if (ShopifyAPI.#graphQlThrottleStatus[this.#shop].maximumAvailable) {
+      if (
+        ShopifyAPI.#graphQlThrottleStatus[this.#shop].currentlyAvailable <=
+          ShopifyAPI.#graphQlThrottleStatus[this.#shop].restoreRate
+      ) {
+        ShopifyAPI.#cleaningGraphQL[this.#shop] = true;
+        await this.delay(
+          1000 *
+            Math.ceil(
+              ShopifyAPI.#graphQlThrottleStatus[this.#shop].maximumAvailable /
+                ShopifyAPI.#graphQlThrottleStatus[this.#shop].restoreRate,
+            ),
+        );
+        cleaned = true;
+        ShopifyAPI.#cleaningGraphQL[this.#shop] = false;
+      }
+    }
 
+    return cleaned;
+  }
   async delayQueue() {
     while (ShopifyAPI.#cleaningReqs[this.#shop]) {
       await this.delay(100);
@@ -101,21 +127,25 @@ export class ShopifyAPI {
     if (!endpoint.startsWith("http")) {
       endpoint = `https://${this.#shop}/${endpoint}`;
     }
-    var request = await fetch(
-      endpoint,
-      params,
-    );
-    var res: any = {};
+    const cleaned = await this.delayQueue();
+    if (((Date.now() - ShopifyAPI.#lastReq[this.#shop]) < 1000) || cleaned) {
+      ShopifyAPI.#reqsPerSecond[this.#shop]++;
+    } else {
+      ShopifyAPI.#lastReq[this.#shop] = Date.now();
+    }
     try {
-      const cleaned = await this.delayQueue();
-      if (((Date.now() - ShopifyAPI.#lastReq[this.#shop]) < 1000) || cleaned) {
-        ShopifyAPI.#reqsPerSecond[this.#shop]++;
-      } else {
-        ShopifyAPI.#lastReq[this.#shop] = Date.now();
-      }
+      var res: any = {};
+      var request: any = {};
+      request = await fetch(
+        endpoint,
+        params,
+      );
       res = await request.json();
-    } catch (e) {}
+    } catch (e) {
+      console.log(e);
+    }
     if (
+      //@ts-ignore
       request.status === 429 ||
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
@@ -125,9 +155,9 @@ export class ShopifyAPI {
     }
     const retData = {
       ...res,
-      ...{
-        http_status: request.status,
-        headers: Object.fromEntries(request.headers),
+      ...{ //@ts-ignore
+        http_status: request.status, //@ts-ignore
+        headers: Object.fromEntries(request.headers || []),
       },
     };
     if (retData.headers.link) {
@@ -162,30 +192,46 @@ export class ShopifyAPI {
     if (this.#token) {
       headers.append("X-Shopify-Access-Token", this.#token);
     }
-    var request = await fetch(
-      `https://${this.#shop}/${endpoint}`,
-      {
-        method: "POST",
-        headers: headers,
-        body: query,
-      },
-    );
-    const res: any = await request.json();
+    const cleaned = await this.delayQueueGraphQl();
+    try {
+      var res: any = {};
+      var request: any = {};
+      request = await fetch(
+        `https://${this.#shop}/${endpoint}`,
+        {
+          method: "POST",
+          headers: headers,
+          body: query,
+        },
+      );
+
+      res = await request.json();
+    } catch (e) {
+      console.log(e);
+    }
     if (
+      res.extensions && res.extensions.cost &&
+      res.extensions.cost.throttleStatus
+    ) {
+      ShopifyAPI.#graphQlThrottleStatus[this.#shop] =
+        res.extensions.cost.throttleStatus;
+    }
+    if (
+      //@ts-ignore
       request.status === 429 ||
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      ShopifyAPI.#retry[this.#shop]++;
-      if (ShopifyAPI.#retry[this.#shop] > 20) { //10 seconds
-        ShopifyAPI.#retry[this.#shop] = 1;
-      }
-      await this.delay(ShopifyAPI.#retry[this.#shop] * 0.5 * 1000);
+      await this.delay(1000);
       return await this.graphQL(query, endpoint);
-    } else {
-      ShopifyAPI.#retry[this.#shop] = 0;
     }
-    return { ...res, ...{ http_status: request.status } };
+    return {
+      ...res,
+      ...{ //@ts-ignore
+        http_status: request.status, //@ts-ignore
+        headers: Object.fromEntries(request.headers || []),
+      },
+    };
   }
   async searchTags(search: string, limit: number = 20): Promise<string[]> {
     search = this.cleanSearch(search);
