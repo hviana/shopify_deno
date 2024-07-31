@@ -63,7 +63,7 @@ export class ShopifyAPI {
 
   async delayQueue() {
     ShopifyAPI.cleaningQueue = true;
-    while (ShopifyAPI.reqsPerSecond[this.#shop] >= 0) {
+    while (ShopifyAPI.reqsPerSecond[this.#shop] > 0) {
       await this.delay(100);
     }
     ShopifyAPI.cleaningQueue = false;
