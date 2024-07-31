@@ -104,11 +104,7 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      ShopifyAPI.retry++;
-      if (ShopifyAPI.retry > 20) { //10 seconds
-        ShopifyAPI.retry = 1;
-      }
-      await this.delay(ShopifyAPI.retry * 0.5 * 1000);
+      await this.delayQueue();
       return await this.request(endpoint, method, data);
     } else {
       ShopifyAPI.retry = 0;
@@ -148,11 +144,6 @@ export class ShopifyAPI {
     query: string,
     endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
   ): Promise<any> {
-    if (ShopifyAPI.reqsPerSecond + 1 > this.#maxReqsPerSecond) {
-      await this.delayQueue();
-      return await this.graphQL(query, endpoint);
-    }
-    ShopifyAPI.reqsPerSecond++;
     const headers = new Headers({
       "Content-Type": "application/graphql",
       "Accept": "application/json",
@@ -183,10 +174,6 @@ export class ShopifyAPI {
       return await this.graphQL(query, endpoint);
     } else {
       ShopifyAPI.retry = 0;
-    }
-    ShopifyAPI.reqsPerSecond--;
-    if (ShopifyAPI.reqsPerSecond < 0) {
-      ShopifyAPI.reqsPerSecond = 0;
     }
     return { ...res, ...{ http_status: request.status } };
   }
