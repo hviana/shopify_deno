@@ -64,7 +64,7 @@ export class ShopifyAPI {
 
   async delayQueue() {
     var cleaned = false;
-    if (ShopifyAPI.#reqsPerSecond[this.#shop] > this.#maxReqsPerSecond) {
+    if (ShopifyAPI.#reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
       await this.delay(1000 - (Date.now() - ShopifyAPI.#lastReq[this.#shop]));
       ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
       cleaned = true;
@@ -76,12 +76,6 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    ShopifyAPI.#reqsPerSecond[this.#shop]++;
-    if (
-      (Date.now() - ShopifyAPI.#lastReq[this.#shop]) > 1000
-    ) {
-      ShopifyAPI.#lastReq[this.#shop] = Date.now();
-    }
     const cleaned = await this.delayQueue();
     if (cleaned) {
       return await this.request(endpoint, method, data);
@@ -110,6 +104,8 @@ export class ShopifyAPI {
     );
     var res: any = {};
     try {
+      ShopifyAPI.#reqsPerSecond[this.#shop]++;
+      ShopifyAPI.#lastReq[this.#shop] = Date.now();
       res = await request.json();
     } catch (e) {}
     if (request.status === 200) {
