@@ -61,7 +61,7 @@ export class ShopifyAPI {
   }
 
   async delayQueue() {
-    while (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
+    while (ShopifyAPI.reqsPerSecond[this.#shop] > 0) {
       await this.delay(100);
     }
   }
@@ -70,6 +70,9 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
+    while (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
+      await this.delayQueue();
+    }
     ShopifyAPI.reqsPerSecond[this.#shop]++;
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -106,7 +109,6 @@ export class ShopifyAPI {
       if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
         ShopifyAPI.reqsPerSecond[this.#shop] = 0;
       }
-      await this.delayQueue();
       return await this.request(endpoint, method, data);
     }
     const retData = {
