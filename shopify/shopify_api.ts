@@ -61,7 +61,7 @@ export class ShopifyAPI {
   }
 
   async delayQueue() {
-    while (ShopifyAPI.reqsPerSecond[this.#shop] < this.#maxReqsPerSecond) {
+    while (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
       await this.delay(100);
     }
   }
