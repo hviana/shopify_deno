@@ -12,6 +12,7 @@ export class ShopifyAPI {
   #apiKey: string;
   #maxReqsPerSecond: number;
   static #tagSep = ", ";
+  static cleaningQueue: boolean = false;
   static retry: { [key: string]: number } = {};
   static reqsPerSecond: { [key: string]: number } = {};
   static #quantityNames = [
@@ -61,7 +62,14 @@ export class ShopifyAPI {
   }
 
   async delayQueue() {
-    while (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
+    ShopifyAPI.cleaningQueue = true;
+    while (ShopifyAPI.reqsPerSecond[this.#shop] >= 0) {
+      await this.delay(100);
+    }
+    ShopifyAPI.cleaningQueue = false;
+  }
+  async queueIsCLeaning() {
+    while (ShopifyAPI.cleaningQueue) {
       await this.delay(100);
     }
   }
@@ -70,6 +78,7 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
+    await this.queueIsCLeaning();
     ShopifyAPI.reqsPerSecond[this.#shop]++;
     const headers = new Headers({
       "Content-Type": "application/json",
