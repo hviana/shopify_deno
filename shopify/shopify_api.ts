@@ -72,7 +72,6 @@ export class ShopifyAPI {
   ): Promise<any> {
     if (ShopifyAPI.reqsPerSecond[this.#shop] + 1 > this.#maxReqsPerSecond) {
       await this.delayQueue();
-      return await this.request(endpoint, method, data);
     }
     ShopifyAPI.reqsPerSecond[this.#shop]++;
     const headers = new Headers({
