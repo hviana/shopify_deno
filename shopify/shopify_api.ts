@@ -61,9 +61,9 @@ export class ShopifyAPI {
     return search.normalize("NFD").replace(/\p{Diacritic}/gu, "");
   }
 
-  async delayQueue() {
-    while (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
-      await this.delay(100);
+  async delayQueue(lastReq: number) {
+    if (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
+      await this.delay(1000 - (Date.now() - lastReq));
     }
   }
   async request(
@@ -73,13 +73,16 @@ export class ShopifyAPI {
   ): Promise<any> {
     var increment = false;
     if (ShopifyAPI.lastReq > 0) {
-      if ((Date.now() - ShopifyAPI.lastReq) < 1001) {
-        increment = true;
+      if ((Date.now() - ShopifyAPI.lastReq) <= 1000) {
+        ShopifyAPI.reqsPerSecond[this.#shop]++;
+        await this.delayQueue(ShopifyAPI.lastReq);
+      } else {
         ShopifyAPI.lastReq = Date.now();
+        ShopifyAPI.reqsPerSecond[this.#shop] = 0;
       }
-    }
-    if (increment) {
-      ShopifyAPI.reqsPerSecond[this.#shop]++;
+    } else {
+      ShopifyAPI.lastReq = Date.now();
+      ShopifyAPI.reqsPerSecond[this.#shop] = 0;
     }
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -112,13 +115,7 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      if (increment) {
-        ShopifyAPI.reqsPerSecond[this.#shop]--;
-        if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
-          ShopifyAPI.reqsPerSecond[this.#shop] = 0;
-        }
-      }
-      await this.delayQueue();
+      await this.delayQueue(ShopifyAPI.lastReq);
       return await this.request(endpoint, method, data);
     }
     const retData = {
@@ -143,12 +140,6 @@ export class ShopifyAPI {
         } else if (l.includes('rel="previous"')) {
           retData.previous_page = l.match(/<(.*)>; rel="previous"/)![1];
         }
-      }
-    }
-    if (increment) {
-      ShopifyAPI.reqsPerSecond[this.#shop]--;
-      if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
-        ShopifyAPI.reqsPerSecond[this.#shop] = 0;
       }
     }
     return retData;
