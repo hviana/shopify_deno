@@ -103,8 +103,11 @@ export class ShopifyAPI {
       while (await this.delayQueue()) {
         continue;
       }
-      ShopifyAPI.#reqsPerSecond[this.#shop]++;
-      ShopifyAPI.#lastReq[this.#shop] = Date.now();
+      if (Date.now() - ShopifyAPI.#lastReq[this.#shop] < 1000) {
+        ShopifyAPI.#reqsPerSecond[this.#shop]++;
+      } else {
+        ShopifyAPI.#lastReq[this.#shop] = Date.now();
+      }
       res = await request.json();
     } catch (e) {}
     if (
