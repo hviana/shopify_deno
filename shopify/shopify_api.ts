@@ -73,7 +73,9 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    if ((Date.now() - ShopifyAPI.lastReq) <= 1000) {
+    if (
+      ((Date.now() - ShopifyAPI.lastReq) <= 1000) || (ShopifyAPI.lastReq == 0)
+    ) {
       ShopifyAPI.reqsPerSecond[this.#shop]++;
       await this.delayQueue(ShopifyAPI.lastReq);
     } else {
@@ -111,7 +113,7 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      await this.delay(1000);
+      await this.delayQueue(ShopifyAPI.lastReq);
       return await this.request(endpoint, method, data);
     }
     const retData = {
