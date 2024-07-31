@@ -64,6 +64,8 @@ export class ShopifyAPI {
   async delayQueue(lastReq: number) {
     if (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
       await this.delay(1000 - (Date.now() - lastReq));
+      ShopifyAPI.lastReq = Date.now();
+      ShopifyAPI.reqsPerSecond[this.#shop] = 0;
     }
   }
   async request(
@@ -71,7 +73,6 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    var increment = false;
     if (ShopifyAPI.lastReq > 0) {
       if ((Date.now() - ShopifyAPI.lastReq) <= 1000) {
         ShopifyAPI.reqsPerSecond[this.#shop]++;
