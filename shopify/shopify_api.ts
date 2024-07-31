@@ -11,6 +11,7 @@ export class ShopifyAPI {
   #apiVersion: string;
   #apiKey: string;
   #maxReqsPerSecond: number;
+  static #cleaningReqs: { [key: string]: boolean } = {};
   static #lastReq: { [key: string]: number } = {};
   static #tagSep = ", ";
   static #retry: { [key: string]: number } = {};
@@ -32,6 +33,7 @@ export class ShopifyAPI {
     ShopifyAPI.#retry[this.#shop] = 0;
     ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
     ShopifyAPI.#lastReq[this.#shop] = Date.now();
+    ShopifyAPI.#cleaningReqs[this.#shop] = false;
     this.#token = token;
     this.#apiKey = apiKey;
     this.#apiVersion = apiVersion;
@@ -63,11 +65,16 @@ export class ShopifyAPI {
   }
 
   async delayQueue() {
+    while (ShopifyAPI.#cleaningReqs[this.#shop]) {
+      await this.delay(100);
+    }
     var cleaned = false;
     if (ShopifyAPI.#reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
+      ShopifyAPI.#cleaningReqs[this.#shop] = true;
       await this.delay(1000 - (Date.now() - ShopifyAPI.#lastReq[this.#shop]));
       ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
       cleaned = true;
+      ShopifyAPI.#cleaningReqs[this.#shop] = false;
     }
     return cleaned;
   }
@@ -100,10 +107,8 @@ export class ShopifyAPI {
     );
     var res: any = {};
     try {
-      while (await this.delayQueue()) {
-        continue;
-      }
-      if (Date.now() - ShopifyAPI.#lastReq[this.#shop] < 1000) {
+      const cleaned = await this.delayQueue();
+      if (((Date.now() - ShopifyAPI.#lastReq[this.#shop]) < 1000) || cleaned) {
         ShopifyAPI.#reqsPerSecond[this.#shop]++;
       } else {
         ShopifyAPI.#lastReq[this.#shop] = Date.now();
