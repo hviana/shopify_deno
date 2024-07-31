@@ -102,6 +102,10 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
+      ShopifyAPI.reqsPerSecond[this.#shop]--;
+      if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
+        ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+      }
       await this.delayQueue();
       return await this.request(endpoint, method, data);
     }
