@@ -13,7 +13,7 @@ export class ShopifyAPI {
   #maxReqsPerSecond: number;
   static #tagSep = ", ";
   static retry: number = 0;
-  static reqsPerSecond: number = 0;
+  static reqsPerSecond: { [key: string]: number } = {};
   static #quantityNames = [
     "reserved",
     "committed",
@@ -28,6 +28,7 @@ export class ShopifyAPI {
     maxReqsPerSecond: number = 2,
   ) {
     this.#shop = shop;
+    ShopifyAPI.reqsPerSecond[this.#shop] = 0;
     this.#token = token;
     this.#apiKey = apiKey;
     this.#apiVersion = apiVersion;
@@ -59,7 +60,7 @@ export class ShopifyAPI {
   }
 
   async delayQueue() {
-    while (ShopifyAPI.reqsPerSecond > this.#maxReqsPerSecond) {
+    while (ShopifyAPI.reqsPerSecond[this.#shop] > this.#maxReqsPerSecond) {
       await this.delay(100);
     }
   }
@@ -68,11 +69,11 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    if (ShopifyAPI.reqsPerSecond + 1 > this.#maxReqsPerSecond) {
+    if (ShopifyAPI.reqsPerSecond[this.#shop] + 1 > this.#maxReqsPerSecond) {
       await this.delayQueue();
       return await this.request(endpoint, method, data);
     }
-    ShopifyAPI.reqsPerSecond++;
+    ShopifyAPI.reqsPerSecond[this.#shop]++;
     const headers = new Headers({
       "Content-Type": "application/json",
       "Accept": "application/json",
@@ -133,9 +134,9 @@ export class ShopifyAPI {
         }
       }
     }
-    ShopifyAPI.reqsPerSecond--;
-    if (ShopifyAPI.reqsPerSecond < 0) {
-      ShopifyAPI.reqsPerSecond = 0;
+    ShopifyAPI.reqsPerSecond[this.#shop]--;
+    if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
+      ShopifyAPI.reqsPerSecond[this.#shop] = 0;
     }
     return retData;
   }
