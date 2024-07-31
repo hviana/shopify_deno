@@ -12,7 +12,7 @@ export class ShopifyAPI {
   #apiKey: string;
   #maxReqsPerSecond: number;
   static #tagSep = ", ";
-  static retry: number = 0;
+  static retry: { [key: string]: number } = {};
   static reqsPerSecond: { [key: string]: number } = {};
   static #quantityNames = [
     "reserved",
@@ -28,6 +28,7 @@ export class ShopifyAPI {
     maxReqsPerSecond: number = 2,
   ) {
     this.#shop = shop;
+    ShopifyAPI.retry[this.#shop] = 0;
     ShopifyAPI.reqsPerSecond[this.#shop] = 0;
     this.#token = token;
     this.#apiKey = apiKey;
@@ -107,8 +108,6 @@ export class ShopifyAPI {
     ) {
       await this.delayQueue();
       return await this.request(endpoint, method, data);
-    } else {
-      ShopifyAPI.retry = 0;
     }
     const retData = {
       ...res,
@@ -167,14 +166,14 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      ShopifyAPI.retry++;
-      if (ShopifyAPI.retry > 20) { //10 seconds
-        ShopifyAPI.retry = 1;
+      ShopifyAPI.retry[this.#shop]++;
+      if (ShopifyAPI.retry[this.#shop] > 20) { //10 seconds
+        ShopifyAPI.retry[this.#shop] = 1;
       }
-      await this.delay(ShopifyAPI.retry * 0.5 * 1000);
+      await this.delay(ShopifyAPI.retry[this.#shop] * 0.5 * 1000);
       return await this.graphQL(query, endpoint);
     } else {
-      ShopifyAPI.retry = 0;
+      ShopifyAPI.retry[this.#shop] = 0;
     }
     return { ...res, ...{ http_status: request.status } };
   }
