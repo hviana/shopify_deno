@@ -10,8 +10,10 @@ export class ShopifyAPI {
   #token: string;
   #apiVersion: string;
   #apiKey: string;
+  #maxReqsPerSecond: number;
   static #tagSep = ", ";
   static retry: number = 0;
+  static reqsPerSecond: number = 0;
   static #quantityNames = [
     "reserved",
     "committed",
@@ -23,11 +25,13 @@ export class ShopifyAPI {
     token: string = "",
     apiKey: string = "",
     apiVersion: string = "2024-07",
+    maxReqsPerSecond: number = 4,
   ) {
     this.#shop = shop;
     this.#token = token;
     this.#apiKey = apiKey;
     this.#apiVersion = apiVersion;
+    this.#maxReqsPerSecond = maxReqsPerSecond;
   }
   async get(endpoint: string) {
     return await this.request(endpoint, "GET", null);
@@ -54,11 +58,21 @@ export class ShopifyAPI {
     return search.normalize("NFD").replace(/\p{Diacritic}/gu, "");
   }
 
+  async delayQueue() {
+    while (ShopifyAPI.reqsPerSecond > this.#maxReqsPerSecond) {
+      await this.delay(100);
+    }
+  }
   async request(
     endpoint: string,
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
+    ShopifyAPI.reqsPerSecond++;
+    if (ShopifyAPI.reqsPerSecond > this.#maxReqsPerSecond) {
+      await this.delayQueue();
+      return await this.request(endpoint, method, data);
+    }
     const headers = new Headers({
       "Content-Type": "application/json",
       "Accept": "application/json",
@@ -123,6 +137,10 @@ export class ShopifyAPI {
         }
       }
     }
+    ShopifyAPI.reqsPerSecond--;
+    if (ShopifyAPI.reqsPerSecond < 0) {
+      ShopifyAPI.reqsPerSecond = 0;
+    }
     return retData;
   }
 
@@ -130,6 +148,11 @@ export class ShopifyAPI {
     query: string,
     endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
   ): Promise<any> {
+    ShopifyAPI.reqsPerSecond++;
+    if (ShopifyAPI.reqsPerSecond > this.#maxReqsPerSecond) {
+      await this.delayQueue();
+      return await this.graphQL(query, endpoint);
+    }
     const headers = new Headers({
       "Content-Type": "application/graphql",
       "Accept": "application/json",
@@ -160,6 +183,10 @@ export class ShopifyAPI {
       return await this.graphQL(query, endpoint);
     } else {
       ShopifyAPI.retry = 0;
+    }
+    ShopifyAPI.reqsPerSecond--;
+    if (ShopifyAPI.reqsPerSecond < 0) {
+      ShopifyAPI.reqsPerSecond = 0;
     }
     return { ...res, ...{ http_status: request.status } };
   }
