@@ -111,7 +111,7 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      await this.delayQueue(ShopifyAPI.lastReq);
+      await this.delay(1000);
       return await this.request(endpoint, method, data);
     }
     const retData = {
