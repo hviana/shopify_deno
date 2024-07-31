@@ -70,9 +70,6 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    if (ShopifyAPI.reqsPerSecond[this.#shop] + 1 > this.#maxReqsPerSecond) {
-      await this.delayQueue();
-    }
     ShopifyAPI.reqsPerSecond[this.#shop]++;
     const headers = new Headers({
       "Content-Type": "application/json",
