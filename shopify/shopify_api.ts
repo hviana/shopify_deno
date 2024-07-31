@@ -10,7 +10,7 @@ export class ShopifyAPI {
   #token: string;
   #apiVersion: string;
   #apiKey: string;
-  #maxReqsPerSecond: number;
+  #maxReqsPerSecond: { [key: string]: number } = {};
   static #cleaningReqs: { [key: string]: boolean } = {};
   static #cleaningGraphQL: { [key: string]: boolean } = {};
   static #lastReq: { [key: string]: number } = {};
@@ -39,7 +39,7 @@ export class ShopifyAPI {
     this.#token = token;
     this.#apiKey = apiKey;
     this.#apiVersion = apiVersion;
-    this.#maxReqsPerSecond = maxReqsPerSecond;
+    this.#maxReqsPerSecond[this.#shop] = maxReqsPerSecond;
   }
   async get(endpoint: string) {
     return await this.request(endpoint, "GET", null);
@@ -95,7 +95,10 @@ export class ShopifyAPI {
       await this.delay(100);
     }
     var cleaned = false;
-    if (ShopifyAPI.#reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
+    if (
+      ShopifyAPI.#reqsPerSecond[this.#shop] >=
+        this.#maxReqsPerSecond[this.#shop]
+    ) {
       ShopifyAPI.#cleaningReqs[this.#shop] = true;
       await this.delay(1000 - (Date.now() - ShopifyAPI.#lastReq[this.#shop]));
       ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
