@@ -73,8 +73,11 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
+    if (ShopifyAPI.lastReq == 0) {
+      ShopifyAPI.lastReq = Date.now();
+    }
     if (
-      ((Date.now() - ShopifyAPI.lastReq) <= 1000) || (ShopifyAPI.lastReq == 0)
+      (Date.now() - ShopifyAPI.lastReq) <= 1000
     ) {
       ShopifyAPI.reqsPerSecond[this.#shop]++;
       await this.delayQueue(ShopifyAPI.lastReq);
