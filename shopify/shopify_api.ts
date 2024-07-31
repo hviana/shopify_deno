@@ -25,7 +25,7 @@ export class ShopifyAPI {
     token: string = "",
     apiKey: string = "",
     apiVersion: string = "2024-07",
-    maxReqsPerSecond: number = 4,
+    maxReqsPerSecond: number = 2,
   ) {
     this.#shop = shop;
     this.#token = token;
@@ -68,11 +68,11 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    ShopifyAPI.reqsPerSecond++;
-    if (ShopifyAPI.reqsPerSecond > this.#maxReqsPerSecond) {
+    if (ShopifyAPI.reqsPerSecond + 1 > this.#maxReqsPerSecond) {
       await this.delayQueue();
       return await this.request(endpoint, method, data);
     }
+    ShopifyAPI.reqsPerSecond++;
     const headers = new Headers({
       "Content-Type": "application/json",
       "Accept": "application/json",
@@ -148,11 +148,11 @@ export class ShopifyAPI {
     query: string,
     endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
   ): Promise<any> {
-    ShopifyAPI.reqsPerSecond++;
-    if (ShopifyAPI.reqsPerSecond > this.#maxReqsPerSecond) {
+    if (ShopifyAPI.reqsPerSecond + 1 > this.#maxReqsPerSecond) {
       await this.delayQueue();
       return await this.graphQL(query, endpoint);
     }
+    ShopifyAPI.reqsPerSecond++;
     const headers = new Headers({
       "Content-Type": "application/graphql",
       "Accept": "application/json",
