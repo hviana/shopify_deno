@@ -66,7 +66,6 @@ export class ShopifyAPI {
     var cleaned = false;
     if (ShopifyAPI.#reqsPerSecond[this.#shop] > this.#maxReqsPerSecond) {
       await this.delay(1000 - (Date.now() - ShopifyAPI.#lastReq[this.#shop]));
-      ShopifyAPI.#lastReq[this.#shop] = Date.now();
       ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
       cleaned = true;
     }
@@ -82,7 +81,6 @@ export class ShopifyAPI {
       (Date.now() - ShopifyAPI.#lastReq[this.#shop]) > 1000
     ) {
       ShopifyAPI.#lastReq[this.#shop] = Date.now();
-      ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
     }
     const cleaned = await this.delayQueue();
     if (cleaned) {
