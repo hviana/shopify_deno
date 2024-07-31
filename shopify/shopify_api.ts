@@ -11,8 +11,8 @@ export class ShopifyAPI {
   #apiVersion: string;
   #apiKey: string;
   #maxReqsPerSecond: number;
+  static lastReq: number = 0;
   static #tagSep = ", ";
-  static cleaningQueue: boolean = false;
   static retry: { [key: string]: number } = {};
   static reqsPerSecond: { [key: string]: number } = {};
   static #quantityNames = [
@@ -62,14 +62,7 @@ export class ShopifyAPI {
   }
 
   async delayQueue() {
-    ShopifyAPI.cleaningQueue = true;
-    while (ShopifyAPI.reqsPerSecond[this.#shop] > 0) {
-      await this.delay(100);
-    }
-    ShopifyAPI.cleaningQueue = false;
-  }
-  async queueIsCLeaning() {
-    while (ShopifyAPI.cleaningQueue) {
+    while (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
       await this.delay(100);
     }
   }
@@ -78,8 +71,16 @@ export class ShopifyAPI {
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    await this.queueIsCLeaning();
-    ShopifyAPI.reqsPerSecond[this.#shop]++;
+    var increment = false;
+    if (ShopifyAPI.lastReq > 0) {
+      if ((Date.now() - ShopifyAPI.lastReq) < 1001) {
+        increment = true;
+        ShopifyAPI.lastReq = Date.now();
+      }
+    }
+    if (increment) {
+      ShopifyAPI.reqsPerSecond[this.#shop]++;
+    }
     const headers = new Headers({
       "Content-Type": "application/json",
       "Accept": "application/json",
@@ -111,9 +112,11 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      ShopifyAPI.reqsPerSecond[this.#shop]--;
-      if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
-        ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+      if (increment) {
+        ShopifyAPI.reqsPerSecond[this.#shop]--;
+        if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
+          ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+        }
       }
       await this.delayQueue();
       return await this.request(endpoint, method, data);
@@ -142,9 +145,11 @@ export class ShopifyAPI {
         }
       }
     }
-    ShopifyAPI.reqsPerSecond[this.#shop]--;
-    if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
-      ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+    if (increment) {
+      ShopifyAPI.reqsPerSecond[this.#shop]--;
+      if (ShopifyAPI.reqsPerSecond[this.#shop] < 0) {
+        ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+      }
     }
     return retData;
   }
