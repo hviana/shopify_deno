@@ -11,10 +11,10 @@ export class ShopifyAPI {
   #apiVersion: string;
   #apiKey: string;
   #maxReqsPerSecond: number;
-  static lastReq: number = 0;
+  static #lastReq: { [key: string]: number } = {};
   static #tagSep = ", ";
-  static retry: { [key: string]: number } = {};
-  static reqsPerSecond: { [key: string]: number } = {};
+  static #retry: { [key: string]: number } = {};
+  static #reqsPerSecond: { [key: string]: number } = {};
   static #quantityNames = [
     "reserved",
     "committed",
@@ -29,8 +29,9 @@ export class ShopifyAPI {
     maxReqsPerSecond: number = 2,
   ) {
     this.#shop = shop;
-    ShopifyAPI.retry[this.#shop] = 0;
-    ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+    ShopifyAPI.#retry[this.#shop] = 0;
+    ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
+    ShopifyAPI.#lastReq[this.#shop] = Date.now();
     this.#token = token;
     this.#apiKey = apiKey;
     this.#apiVersion = apiVersion;
@@ -61,29 +62,31 @@ export class ShopifyAPI {
     return search.normalize("NFD").replace(/\p{Diacritic}/gu, "");
   }
 
-  async delayQueue(lastReq: number) {
-    if (ShopifyAPI.reqsPerSecond[this.#shop] >= this.#maxReqsPerSecond) {
-      await this.delay(1000 - (Date.now() - lastReq));
-      ShopifyAPI.lastReq = Date.now();
-      ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+  async delayQueue() {
+    var cleaned = false;
+    if (ShopifyAPI.#reqsPerSecond[this.#shop] > this.#maxReqsPerSecond) {
+      await this.delay(1000 - (Date.now() - ShopifyAPI.#lastReq[this.#shop]));
+      ShopifyAPI.#lastReq[this.#shop] = Date.now();
+      ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
+      cleaned = true;
     }
+    return cleaned;
   }
   async request(
     endpoint: string,
     method: string = "GET",
     data: any = {},
   ): Promise<any> {
-    if (ShopifyAPI.lastReq == 0) {
-      ShopifyAPI.lastReq = Date.now();
-    }
+    ShopifyAPI.#reqsPerSecond[this.#shop]++;
     if (
-      (Date.now() - ShopifyAPI.lastReq) <= 1000
+      (Date.now() - ShopifyAPI.#lastReq[this.#shop]) > 1000
     ) {
-      ShopifyAPI.reqsPerSecond[this.#shop]++;
-      await this.delayQueue(ShopifyAPI.lastReq);
-    } else {
-      ShopifyAPI.lastReq = Date.now();
-      ShopifyAPI.reqsPerSecond[this.#shop] = 0;
+      ShopifyAPI.#lastReq[this.#shop] = Date.now();
+      ShopifyAPI.#reqsPerSecond[this.#shop] = 0;
+    }
+    const cleaned = await this.delayQueue();
+    if (cleaned) {
+      return await this.request(endpoint, method, data);
     }
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -111,13 +114,15 @@ export class ShopifyAPI {
     try {
       res = await request.json();
     } catch (e) {}
+    if (request.status === 200) {
+      console.log([request.status, res, ShopifyAPI.#reqsPerSecond[this.#shop]]);
+    }
     if (
       request.status === 429 ||
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      await this.delayQueue(ShopifyAPI.lastReq);
-      return await this.request(endpoint, method, data);
+      await this.delay(1000);
     }
     const retData = {
       ...res,
@@ -172,14 +177,14 @@ export class ShopifyAPI {
       (res.errors && res.errors[0] && res.errors[0].extensions &&
         res.errors[0].extensions.code === "THROTTLED")
     ) {
-      ShopifyAPI.retry[this.#shop]++;
-      if (ShopifyAPI.retry[this.#shop] > 20) { //10 seconds
-        ShopifyAPI.retry[this.#shop] = 1;
+      ShopifyAPI.#retry[this.#shop]++;
+      if (ShopifyAPI.#retry[this.#shop] > 20) { //10 seconds
+        ShopifyAPI.#retry[this.#shop] = 1;
       }
-      await this.delay(ShopifyAPI.retry[this.#shop] * 0.5 * 1000);
+      await this.delay(ShopifyAPI.#retry[this.#shop] * 0.5 * 1000);
       return await this.graphQL(query, endpoint);
     } else {
-      ShopifyAPI.retry[this.#shop] = 0;
+      ShopifyAPI.#retry[this.#shop] = 0;
     }
     return { ...res, ...{ http_status: request.status } };
   }
