@@ -11,6 +11,7 @@ export class ShopifyAPI {
   #apiVersion: string;
   #apiKey: string;
   #maxReqsPerSecond: { [key: string]: number } = {};
+  static maxOrderNoteAttrLen = 65000;
   static #cleaningReqs: { [key: string]: boolean } = {};
   static #cleaningGraphQL: { [key: string]: boolean } = {};
   static #lastReq: { [key: string]: number } = {};
