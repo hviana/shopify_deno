@@ -77,10 +77,10 @@ export class ShopifyApp {
   #server: Server;
   #registered_webhooks: { [key: string]: WebHookFunc } = {};
   #options: ShopifyAppOptions;
-  get appPath() {
+  get appPath(): string {
     return "/" + encodeURIComponent(this.options.namespace!);
   }
-  get options() {
+  get options(): ShopifyAppOptions {
     return this.#options;
   }
   constructor(options: ShopifyAppOptions, server: Server) {
@@ -91,7 +91,7 @@ export class ShopifyApp {
   #scopesStrToSet(scopes: string) {
     return new Set(scopes.split(",").map((s) => s.trim()));
   }
-  async getAccessTokens() {
+  async getAccessTokens(): Promise<{ [key: string]: string }> {
     var res: any = {};
     const iter = this.#options.kv.list({ prefix: ["shopify_deno"] });
     for await (const shopData of iter) {
@@ -100,13 +100,13 @@ export class ShopifyApp {
     }
     return res;
   }
-  async getAccessToken(shop: string) {
+  async getAccessToken(shop: string): Promise<string> {
     const data = await this.#geShopData(shop);
     if (data) {
       //@ts-ignore
       return data.access_token;
     }
-    return undefined;
+    return "";
   }
   async #geShopData(shop: string) {
     return (await this.#options.kv.get(["shopify_deno", shop])).value;

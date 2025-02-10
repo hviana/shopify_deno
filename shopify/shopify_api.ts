@@ -65,19 +65,31 @@ export class ShopifyAPI {
     this.#restReqSecondWindow[this.#shop] = Date.now();
     this.#restReqLastTime[this.#shop] = Date.now();
   }
-  async get(endpoint: string, storeFront: boolean = false) {
+  async get(endpoint: string, storeFront: boolean = false): Promise<any> {
     return await this.request(endpoint, "GET", null, storeFront);
   }
-  async put(endpoint: string, data: any = {}, storeFront: boolean = false) {
+  async put(
+    endpoint: string,
+    data: any = {},
+    storeFront: boolean = false,
+  ): Promise<any> {
     return await this.request(endpoint, "PUT", data, storeFront);
   }
-  async post(endpoint: string, data: any = {}, storeFront: boolean = false) {
+  async post(
+    endpoint: string,
+    data: any = {},
+    storeFront: boolean = false,
+  ): Promise<any> {
     return await this.request(endpoint, "POST", data, storeFront);
   }
-  async delete(endpoint: string, data: any = {}, storeFront: boolean = false) {
+  async delete(
+    endpoint: string,
+    data: any = {},
+    storeFront: boolean = false,
+  ): Promise<any> {
     return await this.request(endpoint, "DELETE", data, storeFront);
   }
-  get appUrl() {
+  get appUrl(): string {
     if (!this.#apiKey) {
       throw new Error(
         "For generate app url, needs apiKey parameter pass to constructor",
@@ -85,10 +97,10 @@ export class ShopifyAPI {
     }
     return `https://${this.#shop}/admin/apps/${this.#apiKey}`;
   }
-  get shop() {
+  get shop(): string {
     return this.#shop;
   }
-  inspectApiUsage() {
+  inspectApiUsage(): any {
     return {
       graphQLCostAvg: this.avg(this.#graphQLCostAvg[this.#shop].data),
       graphQLConcurrentReqsAvg: this.avg(
@@ -307,7 +319,7 @@ export class ShopifyAPI {
     this.#graphQLConcurrentReqs[this.#shop] = new Set();
   }
 
-  async parseGraphMultiPart(body: ReadableStream) {
+  async parseGraphMultiPart(body: ReadableStream): Promise<any[]> {
     const text = await new Response(body).text();
     const curlyBracesInclusive = /\{(.*)\}/g;
     const matches = text.matchAll(curlyBracesInclusive);
@@ -432,7 +444,7 @@ export class ShopifyAPI {
   async getLocations(
     pageSize: number = 100,
     endCursor: string = "",
-  ) {
+  ): Promise<any> {
     const data: any[] = [];
     var res = await this.graphQL(`
       query {
@@ -461,7 +473,7 @@ export class ShopifyAPI {
     }
     return data;
   }
-  async getLocationsOrganizedByName(pageSize: number = 100) {
+  async getLocationsOrganizedByName(pageSize: number = 100): Promise<any> {
     return this.#organizeLocations(await this.getLocations(pageSize));
   }
   #organizeLocations(data: any) {
@@ -479,7 +491,7 @@ export class ShopifyAPI {
     inventoryLevelsPageSize: number = 200,
     endCursor: string = "",
     mainCall = true,
-  ) {
+  ): Promise<any> {
     var data: any[] = [];
     var res = await this.graphQL(`
       query {
@@ -589,7 +601,7 @@ export class ShopifyAPI {
   async getInventoryDataBySku(
     variantsPageSize: number = 200,
     inventoryLevelsPageSize: number = 200,
-  ) {
+  ): Promise<any> {
     return this.#organizeInventoryDataBySku(
       await this.getVariantsInventory(
         variantsPageSize,
@@ -755,7 +767,7 @@ export class ShopifyAPI {
     mediaIds: string[],
     productId: string,
     variantId: string,
-  ) {
+  ): Promise<any> {
     const mediaIdsUrls = mediaIds.map((id) => `gid://shopify/MediaImage/${id}`);
     var res: any[] = [];
     for (const mediaIdsUrl of mediaIdsUrls) {
@@ -789,7 +801,7 @@ export class ShopifyAPI {
     financial_status: string = "any",
     fulfillment_status: string = "any",
     cursor: any = null,
-  ) {
+  ): Promise<any> {
     const res = await this.graphQL(`
     query {
       orders(first: ${limit}, ${
@@ -985,7 +997,10 @@ export class ShopifyAPI {
   `);
   }
 
-  async searchProductsByTitle(search: string, limit: number = 10) {
+  async searchProductsByTitle(
+    search: string,
+    limit: number = 10,
+  ): Promise<any> {
     search = this.cleanSearch(search);
     const resQuery = await this.graphQL(`
     {
@@ -1028,7 +1043,7 @@ export class ShopifyAPI {
     }
     return res;
   }
-  async getAllProductsIdsByTags(tags: string[]) {
+  async getAllProductsIdsByTags(tags: string[]): Promise<any> {
     var res: string[] = [];
     for (const t of tags) {
       res.push(...await this.getAllProductsIdsByTag(t));
@@ -1077,7 +1092,7 @@ export class ShopifyAPI {
     return res;
   }
 
-  async getProductIdBySKU(SKU: string) { //query:"sku:1*"
+  async getProductIdBySKU(SKU: string): Promise<any> { //query:"sku:1*"
     const data = await this.graphQL(`
     {
       products(first:1, query:"sku:${SKU}") {
@@ -1091,7 +1106,7 @@ export class ShopifyAPI {
     `);
     return data.data.products.edges[0].node.id.split("/").pop();
   }
-  async getPlans() {
+  async getPlans(): Promise<any> {
     const res = await this.get(
       `/admin/api/${this.#apiVersion}/recurring_application_charges.json`,
     );
@@ -1102,7 +1117,7 @@ export class ShopifyAPI {
     price: number,
     trialDays: number = 0,
     test: boolean | null = null,
-  ) {
+  ): Promise<any> {
     const res = await this.post(
       `/admin/api/${this.#apiVersion}/recurring_application_charges.json`,
       {
@@ -1117,13 +1132,13 @@ export class ShopifyAPI {
     );
     return res.recurring_application_charge;
   }
-  async getPlanStatus(planId: string) {
+  async getPlanStatus(planId: string): Promise<any> {
     const res = await this.get(
       `/admin/api/${this.#apiVersion}/recurring_application_charges/${planId}.json`,
     );
     return res.recurring_application_charge.status;
   }
-  async getPlanUrl(planId: string) {
+  async getPlanUrl(planId: string): Promise<any> {
     const res = await this.get(
       `/admin/api/${this.#apiVersion}/recurring_application_charges/${planId}.json`,
     );
@@ -1139,11 +1154,11 @@ export class ShopifyAPI {
     await this.walkOnInventories(locationId, (i: any) => inventories.push(i));
     return inventories;
   }
-  async getProduct(id: string | number) {
+  async getProduct(id: string | number): Promise<any> {
     return (await this.get(`admin/api/${this.#apiVersion}/products/${id}.json`))
       .product;
   }
-  async deleteProductTag(tag: string) {
+  async deleteProductTag(tag: string): Promise<any> {
     const productsIds = await this.getAllProductsIdsByTag(tag);
     for (const id of productsIds) {
       const p = await this.getProduct(id);
@@ -1159,7 +1174,9 @@ export class ShopifyAPI {
     }
     `)).data.collectionByHandle.id.split("/").pop();
   }
-  async getAllCollectsInCollection(collectionId: string | number) {
+  async getAllCollectsInCollection(
+    collectionId: string | number,
+  ): Promise<any> {
     const max: number = 250;
     var since: number = 0;
     var data: any = {};
@@ -1175,7 +1192,9 @@ export class ShopifyAPI {
     return res;
   }
 
-  async getAllProductsInCollection(collectionId: string | number) {
+  async getAllProductsInCollection(
+    collectionId: string | number,
+  ): Promise<any> {
     const max: number = 250;
     var since: number = 0;
     var data: any = {};
@@ -1313,7 +1332,7 @@ export class ShopifyAPI {
   async getInventoryLevelsBySKU(
     sku: string | number,
     pageSize: number = 200,
-  ) {
+  ): Promise<any> {
     var data: any = [];
     const res = await this.graphQL(`
   query {
@@ -1371,7 +1390,7 @@ export class ShopifyAPI {
   async getInventoryLevelBySKU(
     sku: string | number,
     locationId: string | number,
-  ) {
+  ): Promise<any> {
     const res = await this.graphQL(`
     query {
       productVariants(first: 1, query: "sku:${sku}") {
@@ -1396,7 +1415,7 @@ export class ShopifyAPI {
     locationId: string | number,
     productGid: string | number,
     variantCursor: any = null,
-  ) {
+  ): Promise<any> {
     const variantQty = 100;
     const resQuery = await this.graphQL(`
     query {
