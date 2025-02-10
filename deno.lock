@@ -1,0 +1,85 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@hviana/deno-kv-fs@^1.0.1": "1.0.1",
+    "jsr:@hviana/faster@1.0.9": "1.0.9",
+    "jsr:@hviana/ts-mutex@1.0.0": "1.0.0",
+    "jsr:@std/async@^1.0.7": "1.0.10",
+    "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/crypto@1.0.4": "1.0.4",
+    "jsr:@std/crypto@^1.0.3": "1.0.4",
+    "jsr:@std/encoding@1.0.7": "1.0.7",
+    "jsr:@std/fs@^1.0.5": "1.0.11",
+    "jsr:@std/http@^1.0.9": "1.0.13",
+    "jsr:@std/io@0.225": "0.225.2",
+    "jsr:@std/path@^1.0.7": "1.0.8",
+    "jsr:@std/path@^1.0.8": "1.0.8",
+    "npm:fetch-multipart-graphql@^3.2.1": "3.2.1"
+  },
+  "jsr": {
+    "@hviana/deno-kv-fs@1.0.1": {
+      "integrity": "0872a7fb200cb3a716ec0314a8fbe8869e43d173a5ad82350f3cc3c8388d6bf1",
+      "dependencies": [
+        "jsr:@std/async"
+      ]
+    },
+    "@hviana/faster@1.0.9": {
+      "integrity": "c807e7e8b422857370e862363fb567dd9545e579a975d85648073cf3f9a0fcf7",
+      "dependencies": [
+        "jsr:@hviana/deno-kv-fs",
+        "jsr:@std/crypto@^1.0.3",
+        "jsr:@std/fs",
+        "jsr:@std/http",
+        "jsr:@std/io",
+        "jsr:@std/path@^1.0.7"
+      ]
+    },
+    "@hviana/ts-mutex@1.0.0": {
+      "integrity": "0816daf9fc483201309f80ebe6166e856477a14993b69b11128bfd08ce08c047"
+    },
+    "@std/async@1.0.10": {
+      "integrity": "2ff1b1c7d33d1416159989b0f69e59ec7ee8cb58510df01e454def2108b3dbec"
+    },
+    "@std/bytes@1.0.5": {
+      "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/crypto@1.0.4": {
+      "integrity": "cee245c453bd5366207f4d8aa25ea3e9c86cecad2be3fefcaa6cb17203d79340"
+    },
+    "@std/encoding@1.0.7": {
+      "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
+    },
+    "@std/fs@1.0.11": {
+      "integrity": "ba674672693340c5ebdd018b4fe1af46cb08741f42b4c538154e97d217b55bdd",
+      "dependencies": [
+        "jsr:@std/path@^1.0.8"
+      ]
+    },
+    "@std/http@1.0.13": {
+      "integrity": "d29618b982f7ae44380111f7e5b43da59b15db64101198bb5f77100d44eb1e1e"
+    },
+    "@std/io@0.225.2": {
+      "integrity": "3c740cd4ee4c082e6cfc86458f47e2ab7cb353dc6234d5e9b1f91a2de5f4d6c7",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
+    },
+    "@std/path@1.0.8": {
+      "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    }
+  },
+  "npm": {
+    "fetch-multipart-graphql@3.2.1": {
+      "integrity": "sha512-uNbr6ysfn3GmR7s6LzkeACpYfxdLvCHSDn9DHSZNHpn6jkDH9mWa8rT4jfqXNzua5PG1z5DpDnZjJzIH462Kew=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@hviana/faster@1.0.9",
+      "jsr:@hviana/ts-mutex@1.0.0",
+      "jsr:@std/crypto@1.0.4",
+      "jsr:@std/encoding@1.0.7",
+      "npm:fetch-multipart-graphql@^3.2.1"
+    ]
+  }
+}

@@ -5,10 +5,12 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc, Server } from "../deps.ts";
-import { b64, crypto, hex } from "../deps.ts";
+import { Context, NextFunc, Server } from "faster";
+import * as b64 from "b64";
+import { crypto } from "crypto";
+import * as hex from "hex";
 import { ShopifyAPI } from "./shopify_api.ts";
-import { Mutex } from "../deps.ts";
+import { Mutex } from "ts-mutex";
 
 export type WebHookCall = {
   id: string;

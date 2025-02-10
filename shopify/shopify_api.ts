@@ -4,7 +4,8 @@ Githu: https://github.com/hviana
 Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
-import { Mutex } from "../deps.ts";
+import { Mutex } from "ts-mutex";
+import fetchMultipart from "fetch-multipart-graphql";
 
 export class ShopifyAPI {
   #shop: string;
@@ -334,7 +335,7 @@ export class ShopifyAPI {
       var res: any = {};
       var request: any = {};
       try {
-        request = await fetch(
+        request = await fetchMultipart(
           `https://${this.#shop}/${endpoint}`,
           {
             method: "POST",
