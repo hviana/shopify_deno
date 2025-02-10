@@ -204,7 +204,7 @@ export class ShopifyAPI {
     ) {
       console.log(res);
       await this.delay(1000);
-      return await this.request(endpoint, method, data);
+      return await this.request(endpoint, method, data, storeFront);
     }
     const retData = {
       ...res,
@@ -310,9 +310,9 @@ export class ShopifyAPI {
     query: string,
     storeFront: boolean = false,
   ): Promise<any> {
-    let url = `admin/api/${this.#apiVersion}/graphql.json`;
+    let endpoint = `admin/api/${this.#apiVersion}/graphql.json`;
     if (storeFront) {
-      url = `api/${this.#apiVersion}/graphql.json`;
+      endpoint = `api/${this.#apiVersion}/graphql.json`;
     }
     const headers = new Headers({
       "Content-Type": "application/graphql",
@@ -362,7 +362,7 @@ export class ShopifyAPI {
     ) {
       console.log(resolved.res);
       await this.delay(1000);
-      return await this.graphQL(query, endpoint);
+      return await this.graphQL(query, storeFront);
     }
     return {
       ...resolved.res,
