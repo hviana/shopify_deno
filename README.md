@@ -192,7 +192,7 @@ const data3 = await api.post(`/admin/api/2025-04/script_tags.json`, {
 });
 ```
 
-### StoreFront Call (GraphQL)
+### StoreFront Call (GraphQL or REST)
 
 Pass `true` as the second parameter to indicate a StoreFront call:
 
