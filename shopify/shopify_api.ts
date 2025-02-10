@@ -65,17 +65,17 @@ export class ShopifyAPI {
     this.#restReqSecondWindow[this.#shop] = Date.now();
     this.#restReqLastTime[this.#shop] = Date.now();
   }
-  async get(endpoint: string) {
-    return await this.request(endpoint, "GET", null);
+  async get(endpoint: string, storeFront: boolean = false) {
+    return await this.request(endpoint, "GET", null, storeFront);
   }
-  async put(endpoint: string, data: any = {}) {
-    return await this.request(endpoint, "PUT", data);
+  async put(endpoint: string, data: any = {}, storeFront: boolean = false) {
+    return await this.request(endpoint, "PUT", data, storeFront);
   }
-  async post(endpoint: string, data: any = {}) {
-    return await this.request(endpoint, "POST", data);
+  async post(endpoint: string, data: any = {}, storeFront: boolean = false) {
+    return await this.request(endpoint, "POST", data, storeFront);
   }
-  async delete(endpoint: string, data: any = {}) {
-    return await this.request(endpoint, "DELETE", data);
+  async delete(endpoint: string, data: any = {}, storeFront: boolean = false) {
+    return await this.request(endpoint, "DELETE", data, storeFront);
   }
   get appUrl() {
     if (!this.#apiKey) {
@@ -161,13 +161,18 @@ export class ShopifyAPI {
     endpoint: string,
     method: string = "GET",
     data: any = {},
+    storeFront: boolean = false,
   ): Promise<any> {
     const headers = new Headers({
       "Content-Type": "application/json",
       "Accept": "application/json",
     });
     if (this.#token) {
-      headers.append("X-Shopify-Access-Token", this.#token);
+      if (storeFront) {
+        headers.append("X-Shopify-Storefront-Access-Token", this.#token);
+      } else {
+        headers.append("X-Shopify-Access-Token", this.#token);
+      }
     }
     await this.#restMutex.runExclusive(async () => {
       await this.RESTrateLimitHandle();
@@ -303,15 +308,23 @@ export class ShopifyAPI {
   }
   async graphQL(
     query: string,
-    endpoint: string = `admin/api/${this.#apiVersion}/graphql.json`,
+    storeFront: boolean = false,
   ): Promise<any> {
+    let url = `admin/api/${this.#apiVersion}/graphql.json`;
+    if (storeFront) {
+      url = `api/${this.#apiVersion}/graphql.json`;
+    }
     const headers = new Headers({
       "Content-Type": "application/graphql",
       "Accept": "application/json",
       "Content-Length": query.length.toString(),
     });
     if (this.#token) {
-      headers.append("X-Shopify-Access-Token", this.#token);
+      if (storeFront) {
+        headers.append("X-Shopify-Storefront-Access-Token", this.#token);
+      } else {
+        headers.append("X-Shopify-Access-Token", this.#token);
+      }
     }
     await this.#graphQlMutex.runExclusive(async () => {
       await this.graphQLrateLimitHandle();
