@@ -1165,7 +1165,7 @@ export class ShopifyAPI {
       await this.removeProductTag(p.id, p.tags, [tag]);
     }
   }
-  async getCollectionIdByHandle(handle: string) {
+  async getCollectionIdByHandle(handle: string): Promise<any> {
     return (await this.graphQL(`
     query {
        collectionByHandle(handle: "${handle}") {
