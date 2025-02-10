@@ -1,9 +1,3 @@
-Below is an enhanced version of your README with a cleaner structure, visual
-enhancements, and icons. Feel free to tweak the icons or styling to suit your
-branding!
-
----
-
 # Shopify Deno 🚀
 
 [![Deno](https://img.shields.io/badge/Deno-2.x-blue?logo=deno)](https://deno.land)

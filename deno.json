@@ -1,6 +1,6 @@
 {
   "name": "@hviana/shopify-deno",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "exports": "./mod.ts",
   "imports": {
     "b64": "jsr:@std/encoding@1.0.7/base64",
