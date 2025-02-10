@@ -95,6 +95,7 @@ export class ShopifyApp {
     var res: any = {};
     const iter = this.#options.kv.list({ prefix: ["shopify_deno"] });
     for await (const shopData of iter) {
+      //@ts-ignore
       res[shopData.key[shopData.key.length - 1]] = shopData.value.access_token;
     }
     return res;
@@ -102,6 +103,7 @@ export class ShopifyApp {
   async getAccessToken(shop: string) {
     const data = await this.#geShopData(shop);
     if (data) {
+      //@ts-ignore
       return data.access_token;
     }
     return undefined;
@@ -140,7 +142,7 @@ export class ShopifyApp {
     );
     this.#server.get(
       this.appPath + "/install",
-      async (ctx: Context, next) => {
+      async (ctx: Context, next: NextFunc) => {
         ctx.res.headers.set(
           "Content-Security-Policy",
           `frame-ancestors https://${
@@ -148,13 +150,14 @@ export class ShopifyApp {
           } https://admin.shopify.com;`,
         );
         const shopData = await self.#geShopData(
-          ctx.url.searchParams.get("shop"),
+          ctx.url.searchParams.get("shop")!,
         );
         var needsInstall = true;
         if (shopData) {
           if (
             //@ts-ignore
             this.#scopesStrToSet(self.options["scopes"]).difference(
+              //@ts-ignore
               shopData.scopes,
             ).size == 0
           ) {
@@ -172,7 +175,7 @@ export class ShopifyApp {
           const redirect_url = encodeURI(
             `https://${
               self.#dec.decode(
-                b64.decodeBase64(ctx.url.searchParams.get("host")),
+                b64.decodeBase64(ctx.url.searchParams.get("host")!),
               )
             }/oauth/authorize?client_id=${self.options["api_key"]}&scope=${
               self.options["scopes"]
@@ -192,12 +195,12 @@ export class ShopifyApp {
             }
               </script></body></html>`;
         } else {
-          self.registerWebhooks(ctx.url.searchParams.get("shop"));
+          self.registerWebhooks(ctx.url.searchParams.get("shop")!);
           const redirect_url = encodeURI(`${self.options.host!}${self
             .options.home_route!}?shop=${
             ctx.url.searchParams.get("shop")
           }&session=${
-            encodeURIComponent(ctx.url.searchParams.get("session"))
+            encodeURIComponent(ctx.url.searchParams.get("session")!)
           }`);
           ctx.res.headers.append("Content-Type", "text/html; charset=utf-8");
           ctx.res.body = `<!DOCTYPE html><html><head></head><body>
@@ -228,7 +231,7 @@ export class ShopifyApp {
         });
         if ((res.http_status === 200) && res.access_token) {
           var scopes = this.#scopesStrToSet(self.options.scopes);
-          await this.#setShopData(ctx.url.searchParams.get("shop"), {
+          await this.#setShopData(ctx.url.searchParams.get("shop")!, {
             scopes: scopes,
             code: ctx.url.searchParams.get("code"),
             access_token: res.access_token,
@@ -237,17 +240,17 @@ export class ShopifyApp {
           const home_route_embedded = encodeURI(
             `https://${
               self.#dec.decode(
-                b64.decodeBase64(ctx.url.searchParams.get("host")),
+                b64.decodeBase64(ctx.url.searchParams.get("host")!),
               )
             }/apps/${this
               .options.api_key!}${self
               .options.home_route!}?shop=${
-              encodeURIComponent(ctx.url.searchParams.get("shop"))
+              encodeURIComponent(ctx.url.searchParams.get("shop")!)
             }&session=${
-              encodeURIComponent(ctx.url.searchParams.get("session"))
+              encodeURIComponent(ctx.url.searchParams.get("session")!)
             }`,
           );
-          self.registerWebhooks(ctx.url.searchParams.get("shop"));
+          self.registerWebhooks(ctx.url.searchParams.get("shop")!);
           ctx.redirect(home_route_embedded);
         } else {
           ctx.res.status = 403;
@@ -282,11 +285,13 @@ export class ShopifyApp {
         const topics = new Set(this.options.webhooks!.map((w) => w.topic));
         if (shopData) { //@ts-ignore
           const hasTopicsDiff1 = topics.difference(shopData.webhook_topics);
+          //@ts-ignore
           const hasTopicsDiff2 = shopData.webhook_topics.difference(topics);
           if ((hasTopicsDiff1.size != 0) || (hasTopicsDiff2.size != 0)) {
             needsUpdate = true;
           }
           if (needsUpdate) {
+            //@ts-ignore
             const shopifyAPI = new ShopifyAPI(shop, shopData.access_token);
             for (const topic of hasTopicsDiff2) {
               const webHookUrl = encodeURI(
@@ -346,6 +351,7 @@ export class ShopifyApp {
                 }
               }
             }
+            //@ts-ignore
             shopData.webhook_topics = topics;
             await this.#setShopData(shop, shopData);
           }

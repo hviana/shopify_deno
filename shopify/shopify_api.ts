@@ -690,7 +690,7 @@ export class ShopifyAPI {
         }
       }
     }
-  `)).data.publications.edges.map((n) => n.node);
+  `)).data.publications.edges.map((n: any) => n.node);
   }
 
   async publish(objGid: string, publicationGid: string): Promise<any> {
