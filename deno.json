@@ -7,7 +7,6 @@
     "hex": "jsr:@std/encoding@1.0.7/hex",
     "crypto": "jsr:@std/crypto@1.0.4",
     "faster": "jsr:@hviana/faster@1.0.9",
-    "ts-mutex": "jsr:@hviana/ts-mutex@1.0.0",
-    "fetch-multipart-graphql": "npm:fetch-multipart-graphql@3.2.1"
+    "ts-mutex": "jsr:@hviana/ts-mutex@1.0.0"
   }
 }

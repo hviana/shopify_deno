@@ -5,7 +5,6 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 import { Mutex } from "ts-mutex";
-import fetchMultipart from "fetch-multipart-graphql";
 
 export class ShopifyAPI {
   #shop: string;
@@ -307,6 +306,17 @@ export class ShopifyAPI {
     }
     this.#graphQLConcurrentReqs[this.#shop] = new Set();
   }
+
+  async parseGraphMultiPart(body: ReadableStream) {
+    const text = await new Response(body).text();
+    const curlyBracesInclusive = /\{(.*)\}/g;
+    const matches = text.matchAll(curlyBracesInclusive);
+    const res = [];
+    for (const jsonRes of matches) {
+      res.push(JSON.parse(jsonRes[0]));
+    }
+    return res;
+  }
   async graphQL(
     query: string,
     storeFront: boolean = false,
@@ -335,7 +345,7 @@ export class ShopifyAPI {
       var res: any = {};
       var request: any = {};
       try {
-        request = await fetchMultipart(
+        request = await fetch(
           `https://${this.#shop}/${endpoint}`,
           {
             method: "POST",
@@ -343,7 +353,11 @@ export class ShopifyAPI {
             body: query,
           },
         );
-        res = await request.json();
+        if (query.includes("@defer")) {
+          res = await this.parseGraphMultiPart(request.body);
+        } else {
+          res = await request.json();
+        }
       } catch (e) {
         console.log(e);
       }
