@@ -44,7 +44,7 @@ export class ShopifyAPI {
     shop: string,
     token: string = "",
     apiKey: string = "",
-    apiVersion: string = "2024-07",
+    apiVersion: string = "2025-04",
     maxRESTQueriesPerSecond: number = 2,
     maxConcurrentGraphQLQueries: number = 5,
   ) {

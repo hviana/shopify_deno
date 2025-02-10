@@ -58,7 +58,7 @@ const ShopifyAppOptionsDefault = {
   host: "",
   home_route: "",
   privacy_policy: "",
-  webhookApiVersion: "2024-07",
+  webhookApiVersion: "2025-04",
   webhooks: [],
   clientDataFunc: async (hook: WebHookCall) => {
   },
