@@ -4,7 +4,7 @@ Githu: https://github.com/hviana
 Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
-import { Mutex } from "https://deno.land/x/ts_mutex/mod.ts";
+import { Mutex } from "ts-mutex";
 
 export class ShopifyAPI {
   #shop: string;
