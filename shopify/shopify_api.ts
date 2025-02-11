@@ -4,7 +4,7 @@ Githu: https://github.com/hviana
 Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
-import { Mutex } from "ts-mutex";
+import { Mutex } from "https://deno.land/x/ts_mutex/mod.ts";
 
 export class ShopifyAPI {
   #shop: string;
@@ -338,7 +338,7 @@ export class ShopifyAPI {
       endpoint = `api/${this.#apiVersion}/graphql.json`;
     }
     const headers = new Headers({
-      "Content-Type": "application/graphql",
+      "Content-Type": "application/json",
       "Accept": "application/json",
       "Content-Length": query.length.toString(),
     });
@@ -362,7 +362,7 @@ export class ShopifyAPI {
           {
             method: "POST",
             headers: headers,
-            body: query,
+            body: JSON.stringify({ query: query }),
           },
         );
         if (query.includes("@defer")) {
