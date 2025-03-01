@@ -287,8 +287,3 @@ Improvements and suggestions are always welcome!
 ---
 
 _Happy Coding!_ 💻✨
-
----
-
-This updated README should provide users with a clear, well-organized guide
-along with visual cues to enhance readability and navigation. Enjoy!
